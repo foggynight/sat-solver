@@ -52,7 +52,7 @@ void AST_free(AST *ast);
 
 DA_Token lex_string(const char *str);
 
-AST *parse_tokens(DA_Token toks);
+AST *parse_tokens(DA_Token *toks);
 AST *parse_string(const char *str);
 
 #endif // PARSER_H
@@ -80,7 +80,9 @@ void AST_free(AST *ast) {
 }
 
 void AST_print(const AST *ast) {
-    if (!(ast->left || ast->right)) {
+    if (!ast) {
+        printf("NULL");
+    } else if (!(ast->left || ast->right)) {
         printf("%c", ast->token.chr);
     } else {
         putchar('(');
@@ -122,35 +124,39 @@ DA_Token lex_string(const char *str) {
 // TODO: Make left-associative.
 // TODO: Add operator precedence.
 // TODO: Add unary operators.
-AST *parse_expr(DA_Token toks) {
-    if (DA_NEXT(toks).kind == TOK_END
-        || DA_NEXT(toks).kind == TOK_ERR)
+AST *parse_expr(DA_Token *toks) {
+    if (DA_NEXT(*toks).kind == TOK_END
+        || DA_NEXT(*toks).kind == TOK_ERR)
     {
         AST *err = AST_make();
         err->kind = AST_ERR;
         return err;
     }
 
-    if (DA_NEXT(toks).kind == TOK_PAREN_L) {
-        DA_DEQUE(toks);
+    if (DA_NEXT(*toks).kind == TOK_PAREN_L) {
+        DA_DEQUE(*toks);
         AST *ast = parse_expr(toks);
-        if (DA_NEXT(toks).kind != TOK_PAREN_R) { return NULL; }
-        DA_DEQUE(toks);
+        if (DA_NEXT(*toks).kind != TOK_PAREN_R) { return NULL; }
+        DA_DEQUE(*toks);
         return ast;
     }
 
     AST *ast = NULL;
 
-    if (DA_NEXT(toks).kind == TOK_VAR) {
+    if (DA_NEXT(*toks).kind == TOK_VAR) {
         ast = AST_make();
         ast->kind = AST_VAR;
-        ast->token = DA_NEXT(toks);
-        DA_DEQUE(toks);
+        ast->token = DA_NEXT(*toks);
+        DA_DEQUE(*toks);
 
-        switch (DA_NEXT(toks).kind) {
+        switch (DA_NEXT(*toks).kind) {
         case TOK_END: {
             ;  // Done, NOP.
         } break;
+
+        case TOK_PAREN_R:
+            ;  // Done, NOP.
+            break;
 
         case TOK_VAR: {
             AST *left = ast;
@@ -172,8 +178,8 @@ AST *parse_expr(DA_Token toks) {
 
             ast = AST_make();
             ast->kind = AST_BOP;
-            ast->token = DA_NEXT(toks);
-            DA_DEQUE(toks);
+            ast->token = DA_NEXT(*toks);
+            DA_DEQUE(*toks);
 
             AST *right = parse_expr(toks);
 
@@ -192,7 +198,7 @@ AST *parse_expr(DA_Token toks) {
 }
 
 // Parse a single boolean expression.
-AST *parse_tokens(DA_Token toks) {
+AST *parse_tokens(DA_Token *toks) {
     AST *expr = parse_expr(toks);
     return expr;
 }
@@ -200,7 +206,7 @@ AST *parse_tokens(DA_Token toks) {
 // TODO: This leaks tokens not stored in the AST.
 AST *parse_string(const char *str) {
     DA_Token toks = lex_string(str);
-    return parse_tokens(toks);
+    return parse_tokens(&toks);
 }
 
 #endif // PARSER_IMPL
