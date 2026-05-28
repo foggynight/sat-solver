@@ -3,9 +3,10 @@
 //  Boolean Expression Parser
 //
 //  Parser Grammar:
-//    E -> T ([+] E)?
-//    T -> F ([*]? T)?
+//    E -> T ('+' E)?
+//    T -> F ('*'? T)?
 //    F -> '(' E ')'
+//       | '-' F
 //       | [A-Za-z]
 //
 //  Copyright (C) 2026 Robert Coffey
@@ -134,6 +135,19 @@ AST *parse_fact(DA_Token *toks) {
         return ast;
     }
 
+    if (DA_NEXT(*toks).kind == TOK_MINUS) {
+        AST *unary = AST_make();
+        unary->kind = AST_UOP;
+        unary->token = DA_NEXT(*toks);
+        DA_DEQUE(*toks);
+
+        AST *right = parse_fact(toks);
+        if (!right) { return NULL; }
+
+        unary->right = right;
+        return unary;
+    }
+
     if (DA_NEXT(*toks).kind != TOK_VAR) {
         return NULL;
     }
@@ -172,8 +186,6 @@ AST *parse_term(DA_Token *toks) {
     return term;
 }
 
-// TODO: Make left-associative?
-// TODO: Add unary operators.
 AST *parse_expr(DA_Token *toks) {
     AST *term = parse_term(toks);
 
@@ -181,25 +193,22 @@ AST *parse_expr(DA_Token *toks) {
         return NULL;
     }
 
-    else if (DA_NEXT(*toks).kind != TOK_PLUS) {
+    if (DA_NEXT(*toks).kind != TOK_PLUS) {
         return term;
     }
 
-    else {
-        AST *expr = AST_make();
-        expr->kind = AST_BOP;
-        expr->token = DA_NEXT(*toks);
-        DA_DEQUE(*toks);
+    AST *expr = AST_make();
+    expr->kind = AST_BOP;
+    expr->token = DA_NEXT(*toks);
+    DA_DEQUE(*toks);
 
-        AST *right = parse_expr(toks);
+    AST *right = parse_expr(toks);
 
-        expr->left = term;
-        expr->right = right;
-        return expr;
-    }
+    expr->left = term;
+    expr->right = right;
+    return expr;
 }
 
-// Parse a single boolean expression.
 AST *parse_tokens(DA_Token *toks) {
     AST *expr = parse_expr(toks);
     if (DA_NEXT(*toks).kind != TOK_END) {
