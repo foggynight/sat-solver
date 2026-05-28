@@ -1,12 +1,16 @@
-// Boolean Expression Parser
-// Copyright (C) 2026 Robert Coffey
-
-// --- GRAMMAR ---
+////////////////////////////////////////////////////////////////////////////////
 //
-// E -> '(' E ')'
-//    | T ([+] E)?
-// T -> P ([*]? T)?
-// P -> [A-Za-z]
+//  Boolean Expression Parser
+//
+//  Parser Grammar:
+//    E -> '(' E ')'
+//       | T ([+] E)?
+//    T -> P ([*]? T)?
+//    P -> [A-Za-z]
+//
+//  Copyright (C) 2026 Robert Coffey
+//
+////////////////////////////////////////////////////////////////////////////////
 
 #ifndef PARSER_H
 #define PARSER_H
@@ -117,6 +121,7 @@ DA_Token lex_string(const char *str) {
 
 // TODO: Make left-associative.
 // TODO: Add operator precedence.
+// TODO: Add unary operators.
 AST *parse_expr(DA_Token toks) {
     if (DA_NEXT(toks).kind == TOK_END
         || DA_NEXT(toks).kind == TOK_ERR)
