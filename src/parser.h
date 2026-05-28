@@ -32,8 +32,6 @@ typedef struct Token {
     char chr;
 } Token;
 
-typedef DA(Token) DA_Token;
-
 typedef enum ASTKind {
     AST_ERR,
     AST_VAR,
@@ -48,13 +46,16 @@ typedef struct AST {
     struct AST *right;
 } AST;
 
+typedef DA(char) DA_char;
+typedef DA(Token) DA_Token;
+
 void AST_print(const AST *ast);
 void AST_free(AST *ast);
 
 DA_Token lex_string(const char *str);
 
-AST *parse_tokens(DA_Token *toks);
-AST *parse_string(const char *str);
+AST *parse_tokens(DA_Token *toks, DA_char *vars);
+AST *parse_string(const char *str, DA_char *vars);
 
 #endif // PARSER_H
 
@@ -122,12 +123,12 @@ DA_Token lex_string(const char *str) {
     return toks;
 }
 
-AST *parse_expr(DA_Token *toks);
+AST *parse_expr(DA_Token *toks, DA_char *vars);
 
-AST *parse_fact(DA_Token *toks) {
+AST *parse_fact(DA_Token *toks, DA_char *vars) {
     if (DA_NEXT(*toks).kind == TOK_PAREN_L) {
         DA_DEQUE(*toks);
-        AST *ast = parse_expr(toks);
+        AST *ast = parse_expr(toks, vars);
         if (DA_NEXT(*toks).kind != TOK_PAREN_R) {
             return NULL;
         }
@@ -141,7 +142,7 @@ AST *parse_fact(DA_Token *toks) {
         unary->token = DA_NEXT(*toks);
         DA_DEQUE(*toks);
 
-        AST *right = parse_fact(toks);
+        AST *right = parse_fact(toks, vars);
         if (!right) { return NULL; }
 
         unary->right = right;
@@ -155,13 +156,14 @@ AST *parse_fact(DA_Token *toks) {
     AST *fact = AST_make();
     fact->kind = AST_VAR;
     fact->token = DA_NEXT(*toks);
+    DA_APPEND(*vars, DA_NEXT(*toks).chr);
     DA_DEQUE(*toks);
 
     return fact;
 }
 
-AST *parse_term(DA_Token *toks) {
-    AST *fact = parse_fact(toks);
+AST *parse_term(DA_Token *toks, DA_char *vars) {
+    AST *fact = parse_fact(toks, vars);
 
     if (!fact
         || (DA_NEXT(*toks).kind != TOK_VAR
@@ -179,15 +181,15 @@ AST *parse_term(DA_Token *toks) {
     term->kind = AST_BOP;
     term->token = (Token){ TOK_STAR, '*' };
 
-    AST *right = parse_term(toks);
+    AST *right = parse_term(toks, vars);
 
     term->left = fact;
     term->right = right;
     return term;
 }
 
-AST *parse_expr(DA_Token *toks) {
-    AST *term = parse_term(toks);
+AST *parse_expr(DA_Token *toks, DA_char *vars) {
+    AST *term = parse_term(toks, vars);
 
     if (!term) {
         return NULL;
@@ -202,15 +204,15 @@ AST *parse_expr(DA_Token *toks) {
     expr->token = DA_NEXT(*toks);
     DA_DEQUE(*toks);
 
-    AST *right = parse_expr(toks);
+    AST *right = parse_expr(toks, vars);
 
     expr->left = term;
     expr->right = right;
     return expr;
 }
 
-AST *parse_tokens(DA_Token *toks) {
-    AST *expr = parse_expr(toks);
+AST *parse_tokens(DA_Token *toks, DA_char *vars) {
+    AST *expr = parse_expr(toks, vars);
     if (DA_NEXT(*toks).kind != TOK_END) {
         return NULL;
     }
@@ -218,9 +220,9 @@ AST *parse_tokens(DA_Token *toks) {
 }
 
 // TODO: This leaks tokens not stored in the AST.
-AST *parse_string(const char *str) {
+AST *parse_string(const char *str, DA_char *vars) {
     DA_Token toks = lex_string(str);
-    return parse_tokens(&toks);
+    return parse_tokens(&toks, vars);
 }
 
 #endif // PARSER_IMPL
