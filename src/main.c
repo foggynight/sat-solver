@@ -1,5 +1,8 @@
 #include <stdio.h>
 
+#define AST_IMPL
+#include "AST.h"
+
 #define DA_IMPL
 #include "DA.h"
 
