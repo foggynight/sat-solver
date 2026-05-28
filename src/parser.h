@@ -3,10 +3,10 @@
 //  Boolean Expression Parser
 //
 //  Parser Grammar:
-//    E -> '(' E ')'
-//       | T ([+] E)?
-//    T -> P ([*]? T)?
-//    P -> [A-Za-z]
+//    E -> T ([+] E)?
+//    T -> F ([*]? T)?
+//    F -> '(' E ')'
+//       | [A-Za-z]
 //
 //  Copyright (C) 2026 Robert Coffey
 //
@@ -121,85 +121,90 @@ DA_Token lex_string(const char *str) {
     return toks;
 }
 
-// TODO: Make left-associative.
-// TODO: Add operator precedence.
-// TODO: Add unary operators.
-AST *parse_expr(DA_Token *toks) {
-    if (DA_NEXT(*toks).kind == TOK_END
-        || DA_NEXT(*toks).kind == TOK_ERR)
-    {
-        AST *err = AST_make();
-        err->kind = AST_ERR;
-        return err;
-    }
+AST *parse_expr(DA_Token *toks);
 
+AST *parse_fact(DA_Token *toks) {
     if (DA_NEXT(*toks).kind == TOK_PAREN_L) {
         DA_DEQUE(*toks);
         AST *ast = parse_expr(toks);
-        if (DA_NEXT(*toks).kind != TOK_PAREN_R) { return NULL; }
+        if (DA_NEXT(*toks).kind != TOK_PAREN_R) {
+            return NULL;
+        }
         DA_DEQUE(*toks);
         return ast;
     }
 
-    AST *ast = NULL;
-
-    if (DA_NEXT(*toks).kind == TOK_VAR) {
-        ast = AST_make();
-        ast->kind = AST_VAR;
-        ast->token = DA_NEXT(*toks);
-        DA_DEQUE(*toks);
-
-        switch (DA_NEXT(*toks).kind) {
-        case TOK_END: {
-            ;  // Done, NOP.
-        } break;
-
-        case TOK_PAREN_R:
-            ;  // Done, NOP.
-            break;
-
-        case TOK_VAR: {
-            AST *left = ast;
-
-            ast = AST_make();
-            ast->kind = AST_BOP;
-            ast->token = (Token){ TOK_STAR, '*' };
-
-            AST *right = parse_expr(toks);
-
-            ast->left = left;
-            ast->right = right;
-        } break;
-
-        case TOK_PLUS: [[fallthrough]];
-        case TOK_MINUS: [[fallthrough]];
-        case TOK_STAR: {
-            AST *left = ast;
-
-            ast = AST_make();
-            ast->kind = AST_BOP;
-            ast->token = DA_NEXT(*toks);
-            DA_DEQUE(*toks);
-
-            AST *right = parse_expr(toks);
-
-            ast->left = left;
-            ast->right = right;
-        } break;
-
-        default: {
-            AST_free(ast);
-            ast = NULL;
-        } break;
-        }
+    if (DA_NEXT(*toks).kind != TOK_VAR) {
+        return NULL;
     }
 
-    return ast;
+    AST *fact = AST_make();
+    fact->kind = AST_VAR;
+    fact->token = DA_NEXT(*toks);
+    DA_DEQUE(*toks);
+
+    return fact;
+}
+
+AST *parse_term(DA_Token *toks) {
+    AST *fact = parse_fact(toks);
+
+    if (!fact
+        || (DA_NEXT(*toks).kind != TOK_VAR
+            && DA_NEXT(*toks).kind != TOK_STAR
+            && DA_NEXT(*toks).kind != TOK_PAREN_L))
+    {
+        return fact;
+    }
+
+    if (DA_NEXT(*toks).kind == TOK_STAR) {
+        DA_DEQUE(*toks);
+    }
+
+    AST *term = AST_make();
+    term->kind = AST_BOP;
+    term->token = (Token){ TOK_STAR, '*' };
+
+    AST *right = parse_term(toks);
+
+    term->left = fact;
+    term->right = right;
+    return term;
+}
+
+// TODO: Make left-associative?
+// TODO: Add unary operators.
+AST *parse_expr(DA_Token *toks) {
+    AST *term = parse_term(toks);
+
+    if (!term) {
+        return NULL;
+    }
+
+    else if (DA_NEXT(*toks).kind != TOK_PLUS) {
+        return term;
+    }
+
+    else {
+        AST *expr = AST_make();
+        expr->kind = AST_BOP;
+        expr->token = DA_NEXT(*toks);
+        DA_DEQUE(*toks);
+
+        AST *right = parse_expr(toks);
+
+        expr->left = term;
+        expr->right = right;
+        return expr;
+    }
 }
 
 // Parse a single boolean expression.
 AST *parse_tokens(DA_Token *toks) {
     AST *expr = parse_expr(toks);
+    if (DA_NEXT(*toks).kind != TOK_END) {
+        return NULL;
+    }
     return expr;
 }
 

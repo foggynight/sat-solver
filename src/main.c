@@ -8,9 +8,13 @@
 
 int main(void) {
     //DA_Token toks = lex_string("a + b + c");
+    //DA_Token toks = lex_string("a * b + c * d");
+    //DA_Token toks = lex_string("a + b * (c + d)");
+    //DA_Token toks = lex_string("a + (b * c) + d");
     //DA_Token toks = lex_string("a + bc - d * e");
-    DA_Token toks = lex_string("(a)");
-    //DA_Token toks = lex_string("(a)(b)");
+    //DA_Token toks = lex_string("(a)");
+    DA_Token toks = lex_string("(a)(b)(c)");
+    //DA_Token toks = lex_string("a + b c");
 
     for (size_t i = 0; i < toks.count; ++i) {
         const Token tok = toks.items[i];
