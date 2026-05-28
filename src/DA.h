@@ -37,6 +37,14 @@
 #define DA_DEQUE(xs) do { (xs).offset += 1; } while (0)
 #define DA_REQUE(xs) do { (xs).offset -= 1; } while (0)
 
+#define DA_CONTAINS(xs, x, p)                           \
+    do {                                                \
+        *(p) = false;                                   \
+        for (size_t i_ = 0; i_ < (xs).count; ++i_) {    \
+            if ((xs).items[i_] == (x)) *(p) = true;     \
+        }                                               \
+    } while (0)
+
 void DA_error(const char *error_msg);
 
 #endif // DA_H

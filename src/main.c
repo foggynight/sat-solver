@@ -11,17 +11,18 @@ int main(void) {
     //DA_Token toks = lex_string("a * b + c * d");
     //DA_Token toks = lex_string("a + b * (c + d)");
     //DA_Token toks = lex_string("a + (b * c) + d");
-    DA_Token toks = lex_string("a + -(bc -- d * e)");
+    //DA_Token toks = lex_string("a + -(bc -- d * e)");
     //DA_Token toks = lex_string("a + bc + d * e");
     //DA_Token toks = lex_string("(a)");
     //DA_Token toks = lex_string("(a)(b)(c)");
     //DA_Token toks = lex_string("a + b c");
     //DA_Token toks = lex_string("-(-a * -b)");
+    DA_Token toks = lex_string("(a + -b)(a + c)(b + c)(a + b + c)");
 
-    for (size_t i = 0; i < toks.count; ++i) {
-        const Token tok = toks.items[i];
-        printf("Token %ld: kind=%d chr=%c\n", i+1, tok.kind, tok.chr);
-    }
+    //for (size_t i = 0; i < toks.count; ++i) {
+    //    const Token tok = toks.items[i];
+    //    printf("Token %ld: kind=%d chr=%c\n", i+1, tok.kind, tok.chr);
+    //}
 
     DA_char vars = {0};
     AST *ast = parse_tokens(&toks, &vars);

@@ -153,11 +153,16 @@ AST *parse_fact(DA_Token *toks, DA_char *vars) {
         return NULL;
     }
 
+    Token tok_var = DA_NEXT(*toks);
+    DA_DEQUE(*toks);
+
     AST *fact = AST_make();
     fact->kind = AST_VAR;
-    fact->token = DA_NEXT(*toks);
-    DA_APPEND(*vars, DA_NEXT(*toks).chr);
-    DA_DEQUE(*toks);
+    fact->token = tok_var;
+
+    bool contains;
+    DA_CONTAINS(*vars, tok_var.chr, &contains);
+    if (!contains) DA_APPEND(*vars, tok_var.chr);
 
     return fact;
 }
