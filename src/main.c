@@ -11,10 +11,11 @@ int main(void) {
     //DA_Token toks = lex_string("a * b + c * d");
     //DA_Token toks = lex_string("a + b * (c + d)");
     //DA_Token toks = lex_string("a + (b * c) + d");
-    //DA_Token toks = lex_string("a + bc - d * e");
+    DA_Token toks = lex_string("a + -(bc -- d * e)");
+    //DA_Token toks = lex_string("a + bc + d * e");
     //DA_Token toks = lex_string("(a)");
     //DA_Token toks = lex_string("(a)(b)(c)");
-    DA_Token toks = lex_string("a + b c");
+    //DA_Token toks = lex_string("a + b c");
     //DA_Token toks = lex_string("-(-a * -b)");
 
     for (size_t i = 0; i < toks.count; ++i) {

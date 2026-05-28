@@ -167,6 +167,7 @@ AST *parse_term(DA_Token *toks, DA_char *vars) {
 
     if (!fact
         || (DA_NEXT(*toks).kind != TOK_VAR
+            && DA_NEXT(*toks).kind != TOK_MINUS
             && DA_NEXT(*toks).kind != TOK_STAR
             && DA_NEXT(*toks).kind != TOK_PAREN_L))
     {
