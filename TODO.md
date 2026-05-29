@@ -1,3 +1,3 @@
-[ ] add brute force search for solutions
+[x] add brute force search for solutions
 [ ] add multi-character variable names
 [ ] add DIMACS CNF parser

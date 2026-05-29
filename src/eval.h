@@ -10,16 +10,19 @@ typedef struct {
 } Bind;
 
 typedef DA(Bind) DA_Bind;
+typedef DA(DA_Bind) DA_DA_Bind;
 
 // Create array of bindings, each variable set to false.
 DA_Bind binds_zero(const DA_char *vars);
+
+DA_Bind binds_copy(const DA_Bind *binds);
 
 // Increment variable bindings, like binary increment with first binding
 // corresponding to least significant digit.
 void binds_inc(DA_Bind *binds);
 
 // Evaluate AST to true/false given variable bindings.
-AST *eval_ast_binds(const AST *ast, const DA_Bind *binds);
+const AST *eval_ast_binds(const AST *ast, const DA_Bind *binds);
 
 #endif // EVAL_H
 
@@ -28,11 +31,12 @@ AST *eval_ast_binds(const AST *ast, const DA_Bind *binds);
 #undef EVAL_IMPL
 
 #include <stdbool.h>
+#include <string.h>
 
 #include "AST.h"
 #include "DA.h"
 
-static AST *binds_lookup(DA_Bind *binds, char var) {
+static AST *binds_lookup(const DA_Bind *binds, char var) {
     for (size_t i = 0; i < binds->count; ++i) {
         Bind bind = binds->items[i];
         if (bind.var == var) {
@@ -51,6 +55,14 @@ DA_Bind binds_zero(const DA_char *vars) {
     return binds;
 }
 
+DA_Bind binds_copy(const DA_Bind *binds) {
+    DA_Bind copy = *binds;
+    copy.items = malloc(binds->count * sizeof(Bind));
+    assert(copy.items != NULL);
+    memcpy(copy.items, binds->items, binds->count * sizeof(Bind));
+    return copy;
+}
+
 void binds_inc(DA_Bind *binds) {
     bool carry = true;
     for (size_t i = 0; i < binds->count; ++i) {
@@ -61,7 +73,7 @@ void binds_inc(DA_Bind *binds) {
     }
 }
 
-AST *eval_ast_binds(const AST *ast, const DA_Bind *binds) {
+const AST *eval_ast_binds(const AST *ast, const DA_Bind *binds) {
     switch (ast->kind) {
     case AST_VAR:
         return binds_lookup(binds, ast->token.chr);
