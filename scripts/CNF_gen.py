@@ -10,7 +10,7 @@ var_names = (
     + [chr(ord('a') + i) for i in range(26)]
 )
 
-term_count = 200
+term_count = 100
 term_size  = 100
 
 if __name__ == "__main__":

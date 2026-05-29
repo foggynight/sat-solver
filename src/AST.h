@@ -66,6 +66,9 @@ void AST_print(const AST *ast);
 #include <assert.h>
 #include <stdlib.h>
 
+AST ast_true = { AST_TRUE, {0}, NULL, NULL };
+AST ast_false = { AST_FALSE, {0}, NULL, NULL };
+
 AST *AST_make(void) {
     AST *ast = calloc(1, sizeof(AST));
     assert(ast != NULL);
@@ -73,22 +76,14 @@ AST *AST_make(void) {
 }
 
 void AST_free(AST *ast) {
+    if (ast == &ast_true || ast == &ast_false) { return; }
     if (ast->left != NULL) { AST_free(ast->left); }
     if (ast->right != NULL) { AST_free(ast->right); }
     free(ast);
 }
 
-AST *AST_true(void) {
-    AST *ast = AST_make();
-    ast->kind = AST_TRUE;
-    return ast;
-}
-
-AST *AST_false(void) {
-    AST *ast = AST_make();
-    ast->kind = AST_FALSE;
-    return ast;
-}
+AST *AST_true(void) { return &ast_true; }
+AST *AST_false(void) { return &ast_false; }
 
 bool AST_is_bool(const AST *ast) {
     return ast->kind == AST_TRUE || ast->kind == AST_FALSE;

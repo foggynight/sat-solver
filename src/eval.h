@@ -22,7 +22,7 @@ DA_Bind binds_copy(const DA_Bind *binds);
 void binds_inc(DA_Bind *binds);
 
 // Evaluate AST to true/false given variable bindings.
-const AST *eval_ast_binds(const AST *ast, const DA_Bind *binds);
+AST *eval_ast_binds(AST *ast, const DA_Bind *binds);
 
 #endif // EVAL_H
 
@@ -73,8 +73,11 @@ void binds_inc(DA_Bind *binds) {
     }
 }
 
-const AST *eval_ast_binds(const AST *ast, const DA_Bind *binds) {
+AST *eval_ast_binds(AST *ast, const DA_Bind *binds) {
     switch (ast->kind) {
+    case AST_TRUE: return AST_true();
+    case AST_FALSE: return AST_false();
+
     case AST_VAR:
         return binds_lookup(binds, ast->token.chr);
 
@@ -96,10 +99,6 @@ const AST *eval_ast_binds(const AST *ast, const DA_Bind *binds) {
         assert(0 && "unreachable");
         __builtin_unreachable();
     }
-
-    case AST_TRUE: [[fallthrough]];
-    case AST_FALSE:
-        return ast;
 
     default:
         return NULL;

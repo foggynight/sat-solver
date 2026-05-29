@@ -22,7 +22,7 @@
 //
 //   `all_solutions`: If true, return all solutions, else just first.
 DA_DA_Bind solve_brute_force(
-    const AST *ast,
+    AST *ast,
     const DA_char *vars,
     bool all_solutions)
 {
@@ -30,11 +30,12 @@ DA_DA_Bind solve_brute_force(
 
     DA_Bind binds = binds_zero(vars);
     for (size_t i = 0; i < (1u << vars->count); ++i) {
-        const AST *result_ast = eval_ast_binds(ast, &binds);
+        AST *result_ast = eval_ast_binds(ast, &binds);
         const bool result = AST_to_bool(result_ast);
+        AST_free(result_ast);
 
         if (result) {
-            DA_Bind solution = binds_copy(&binds);
+            const DA_Bind solution = binds_copy(&binds);
             DA_APPEND(solutions, solution);
             if (!all_solutions) { break; }
         }
