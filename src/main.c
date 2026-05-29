@@ -14,6 +14,9 @@
 #define PARSER_IMPL
 #include "parser.h"
 
+// TODO: About a MiB, good enough?
+#define INPUT_BUFSIZE 1048576
+
 // Search for SAT solution given AST of expression and array of variables. Uses
 // brute force by simply walking through each possible set of bindings linearly.
 //
@@ -43,24 +46,13 @@ DA_DA_Bind solve_brute_force(
 }
 
 int main(void) {
-    //DA_Token toks = lex_string("a + b + c");
-    //DA_Token toks = lex_string("a * b + c * d");
-    //DA_Token toks = lex_string("a + b * (c + d)");
-    //DA_Token toks = lex_string("a + (b * c) + d");
-    //DA_Token toks = lex_string("a + -(bc -- d * e)");
-    //DA_Token toks = lex_string("a + bc + d * e");
-    //DA_Token toks = lex_string("(a)");
-    //DA_Token toks = lex_string("-a");
-    //DA_Token toks = lex_string("(a)(-b)(c) + abc");
-    //DA_Token toks = lex_string("a + b");
-    //DA_Token toks = lex_string("a + b c");
-    //DA_Token toks = lex_string("-(-a * -b)");
-    //DA_Token toks = lex_string("(a + -b)(a + c)(b + c)(a + b + c)");
+    char input_buffer[INPUT_BUFSIZE];
+    if (!fgets(input_buffer, sizeof input_buffer, stdin)) {
+        fprintf(stderr, "error: failed to read input");
+        return 1;
+    }
 
-    //for (size_t i = 0; i < toks.count; ++i) {
-    //    const Token tok = toks.items[i];
-    //    printf("Token %ld: kind=%d chr=%c\n", i+1, tok.kind, tok.chr);
-    //}
+    DA_Token toks = lex_string(input_buffer);
 
     DA_char vars = {0};
     AST *ast = parse_tokens(&toks, &vars);
