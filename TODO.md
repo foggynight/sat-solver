@@ -1,3 +1,4 @@
-- [x] add brute force search for solutions
-- [ ] add multi-character variable names
+- [x] add brute force search for solving
+- [ ] add DPLL algorithm for solving
 - [ ] add DIMACS CNF parser
+- [ ] add multi-character variable names?

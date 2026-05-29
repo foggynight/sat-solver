@@ -12,6 +12,9 @@ typedef struct {
 typedef DA(Bind) DA_Bind;
 typedef DA(DA_Bind) DA_DA_Bind;
 
+DA_char vars_copy(const DA_char *vars);
+void vars_free(DA_char *vars);
+
 // Create array of bindings, each variable set to false.
 DA_Bind binds_zero(const DA_char *vars);
 
@@ -21,8 +24,10 @@ DA_Bind binds_copy(const DA_Bind *binds);
 // corresponding to least significant digit.
 void binds_inc(DA_Bind *binds);
 
+void binds_free(DA_Bind *binds);
+
 // Evaluate AST to true/false given variable bindings.
-AST *eval_ast_binds(AST *ast, const DA_Bind *binds);
+AST *eval_ast_binds(const AST *ast, const DA_Bind *binds);
 
 #endif // EVAL_H
 
@@ -47,6 +52,19 @@ static AST *binds_lookup(const DA_Bind *binds, char var) {
     __builtin_unreachable();
 }
 
+DA_char vars_copy(const DA_char *vars) {
+    assert(vars != NULL);
+    DA_char copy = *vars;
+    copy.items = malloc(vars->capacity * sizeof(char));
+    assert(copy.items != NULL);
+    memcpy(copy.items, vars->items, vars->count * sizeof(Bind));
+    return copy;
+}
+
+void vars_free(DA_char *vars) {
+    free(vars->items);
+}
+
 DA_Bind binds_zero(const DA_char *vars) {
     DA_Bind binds = {0};
     for (size_t i = 0; i < vars->count; ++i) {
@@ -57,7 +75,7 @@ DA_Bind binds_zero(const DA_char *vars) {
 
 DA_Bind binds_copy(const DA_Bind *binds) {
     DA_Bind copy = *binds;
-    copy.items = malloc(binds->count * sizeof(Bind));
+    copy.items = malloc(binds->capacity * sizeof(Bind));
     assert(copy.items != NULL);
     memcpy(copy.items, binds->items, binds->count * sizeof(Bind));
     return copy;
@@ -73,7 +91,11 @@ void binds_inc(DA_Bind *binds) {
     }
 }
 
-AST *eval_ast_binds(AST *ast, const DA_Bind *binds) {
+void binds_free(DA_Bind *binds) {
+    free(binds->items);
+}
+
+AST *eval_ast_binds(const AST *ast, const DA_Bind *binds) {
     switch (ast->kind) {
     case AST_TRUE: return AST_true();
     case AST_FALSE: return AST_false();

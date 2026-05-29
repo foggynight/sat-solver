@@ -42,6 +42,7 @@ typedef struct AST {
 typedef DA(Token) DA_Token;
 
 AST *AST_make(void);
+AST *AST_copy(const AST *ast);
 void AST_free(AST *ast);
 
 AST *AST_true(void);
@@ -73,6 +74,16 @@ AST *AST_make(void) {
     AST *ast = calloc(1, sizeof(AST));
     assert(ast != NULL);
     return ast;
+}
+
+AST *AST_copy(const AST *ast) {
+    if (ast == NULL) { return NULL; }
+    AST *copy = AST_make();
+    copy->kind = ast->kind;
+    copy->token = ast->token; // TODO: Should copy token, for now let it leak.
+    copy->left = AST_copy(ast->left);
+    copy->right = AST_copy(ast->right);
+    return copy;
 }
 
 void AST_free(AST *ast) {
