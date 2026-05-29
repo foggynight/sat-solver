@@ -45,6 +45,8 @@
         }                                               \
     } while (0)
 
+typedef DA(char) DA_char;
+
 void DA_error(const char *error_msg);
 
 #endif // DA_H

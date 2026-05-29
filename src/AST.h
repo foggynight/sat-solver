@@ -24,12 +24,12 @@ typedef struct Token {
 typedef enum ASTKind {
     AST_ERR,
 
+    AST_TRUE,
+    AST_FALSE,
+
     AST_VAR,
     AST_UOP,
     AST_BOP,
-
-    AST_TRUE,
-    AST_FALSE,
 } ASTKind;
 
 typedef struct AST {
@@ -39,7 +39,6 @@ typedef struct AST {
     struct AST *right;
 } AST;
 
-typedef DA(char) DA_char;
 typedef DA(Token) DA_Token;
 
 AST *AST_make(void);

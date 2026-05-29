@@ -47,37 +47,20 @@ int main(void) {
     }
     putchar('\n');
 
-    Bind bind_a = { 'a', 1 };
-    Bind bind_b = { 'b', 1 };
-    Bind bind_c = { 'c', 1 };
-    DA_Bind binds = {0};
-    DA_APPEND(binds, bind_a);
-    DA_APPEND(binds, bind_b);
-    DA_APPEND(binds, bind_c);
+    DA_Bind binds = binds_zero(&vars);
+    for (size_t i = 0; i < 8; ++i) {
+        printf("\nbinds:");
+        for (size_t i = 0; i < binds.count; ++i) {
+            Bind bind = binds.items[i];
+            printf(" (%c %d)", bind.var, bind.val);
+        }
+        putchar('\n');
 
-    AST *result = eval_ast_binds(ast, &binds);
-    if (!result) {
-        fprintf(stderr, "error: failed to eval AST with binds\n");
-        exit(1);
+        AST *result = eval_ast_binds(ast, &binds);
+        printf("result: %d\n", AST_to_bool(result));
+
+        binds_inc(&binds);
     }
-
-    bool result_bool;
-    switch (result->kind) {
-    case AST_TRUE: result_bool = true; break;
-    case AST_FALSE: result_bool = false; break;
-    default:
-        fprintf(stderr, "error: invalid result from eval\n");
-        exit(1);
-    }
-
-    printf("binds:");
-    for (size_t i = 0; i < binds.count; ++i) {
-        Bind bind = binds.items[i];
-        printf(" (%c %d)", bind.var, bind.val);
-    }
-    putchar('\n');
-
-    printf("result: %d\n", result_bool);
 
     return 0;
 }

@@ -5,13 +5,21 @@
 #include "DA.h"
 
 typedef struct {
-    char var;
-    bool val;
+    char var;  // variable name
+    bool val;  // bound value
 } Bind;
 
 typedef DA(Bind) DA_Bind;
 
-AST *eval_ast_binds(AST *ast, DA_Bind *binds);
+// Create array of bindings, each variable set to false.
+DA_Bind binds_zero(const DA_char *vars);
+
+// Increment variable bindings, like binary increment with first binding
+// corresponding to least significant digit.
+void binds_inc(DA_Bind *binds);
+
+// Evaluate AST to true/false given variable bindings.
+AST *eval_ast_binds(const AST *ast, const DA_Bind *binds);
 
 #endif // EVAL_H
 
@@ -35,7 +43,25 @@ static AST *binds_lookup(DA_Bind *binds, char var) {
     __builtin_unreachable();
 }
 
-AST *eval_ast_binds(AST *ast, DA_Bind *binds) {
+DA_Bind binds_zero(const DA_char *vars) {
+    DA_Bind binds = {0};
+    for (size_t i = 0; i < vars->count; ++i) {
+        DA_APPEND(binds, ((Bind){ vars->items[i], false }));
+    }
+    return binds;
+}
+
+void binds_inc(DA_Bind *binds) {
+    bool carry = true;
+    for (size_t i = 0; i < binds->count; ++i) {
+        bool next_val = (binds->items[i].val != carry);
+        carry = (binds->items[i].val && carry);
+        binds->items[i].val = next_val;
+        if (!carry) { break; }
+    }
+}
+
+AST *eval_ast_binds(const AST *ast, const DA_Bind *binds) {
     switch (ast->kind) {
     case AST_VAR:
         return binds_lookup(binds, ast->token.chr);
