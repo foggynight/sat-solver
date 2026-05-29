@@ -29,7 +29,7 @@ DA_DA_Bind solve_brute_force(
     DA_DA_Bind solutions = {0};
 
     DA_Bind binds = binds_zero(vars);
-    for (size_t i = 0; i < (1 << vars->count); ++i) {
+    for (size_t i = 0; i < (1u << vars->count); ++i) {
         const AST *result_ast = eval_ast_binds(ast, &binds);
         const bool result = AST_to_bool(result_ast);
 
@@ -47,8 +47,9 @@ DA_DA_Bind solve_brute_force(
 
 int main(void) {
     char input_buffer[INPUT_BUFSIZE];
-    if (!fgets(input_buffer, sizeof input_buffer, stdin)) {
-        fprintf(stderr, "error: failed to read input");
+    fread(input_buffer, 1, sizeof input_buffer, stdin);
+    if (getchar() != EOF) {
+        fprintf(stderr, "error: unread input remaining\n");
         return 1;
     }
 
