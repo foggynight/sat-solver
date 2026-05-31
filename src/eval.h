@@ -73,7 +73,8 @@ void vars_free(DA_char *vars) {
 }
 
 void Bind_print(const Bind *bind) {
-    printf("(bind %c %d %d)", bind->var, bind->val, bind->lock);
+    const char *name = bind->lock ? "pure" : "bind";
+    printf("(%s %c %d)", name, bind->var, bind->val);
 }
 
 DA_Bind binds_zero(const DA_char *vars) {

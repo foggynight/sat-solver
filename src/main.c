@@ -19,24 +19,26 @@
 
 // Search for SAT solution given AST of expression and array of variables. Uses
 // brute force by simply walking through each possible set of bindings linearly.
-//
-//   `all_solutions`: If true, return all solutions, else just first.
 DA_DA_Bind solve_brute_force(
     const AST *ast,
     const DA_char *vars,
-    bool all_solutions)
+    bool first_solution)
 {
     DA_DA_Bind solutions = {0};
     DA_Bind binds = binds_zero(vars);
 
+    printf("Checking Binds:\n");
     for (size_t i = 0; i < (1u << vars->count); ++i) {
+        printf("  %ld: ", i);
+        binds_print(&binds);
+        putchar('\n');
         AST *result_ast = eval_ast_binds(ast, &binds);
         const bool result = AST_to_bool(result_ast);
         AST_free(result_ast);
         if (result) {
             const DA_Bind solution = binds_copy(&binds);
             DA_APPEND(solutions, solution);
-            if (!all_solutions) { break; }
+            if (first_solution) { break; }
         }
         binds_inc(&binds);
     }
@@ -101,6 +103,7 @@ void ple_eliminate_clauses(AST **ast, char var) {
 }
 
 void pure_literal_elimination(AST **ast, const DA_char *vars, DA_Bind *binds) {
+    puts("Eliminating pure literal clauses...");
     for (size_t i = 0; i < vars->count; ++i) {
         const char var = vars->items[i];
         const Polarity polarity = ple_get_polarity(*ast, var);
@@ -118,8 +121,6 @@ void pure_literal_elimination(AST **ast, const DA_char *vars, DA_Bind *binds) {
 // DPLL: Davis-Putnam-Logemann-Loveland Algorithm, unit propagation and pure
 // literal elimination. Input AST must be in CNF.
 //
-//   `all_solutions`: If true, return all solutions in impure search space, else just first.
-//
 // Note: DPLL reduces search space, thus not all solutions will be output.
 //   e.g. "(A + B)(A + C)(B + -B)(C + -C)" => A is pure true, no solutions with
 //   A = false will be checked and thus are not included in the output. Further,
@@ -127,7 +128,7 @@ void pure_literal_elimination(AST **ast, const DA_char *vars, DA_Bind *binds) {
 DA_DA_Bind solve_DPLL(
     const AST *ast_original,
     const DA_char *vars_original,
-    bool all_solutions)
+    bool first_solution)
 {
     DA_DA_Bind solutions = {0};
 
@@ -135,11 +136,8 @@ DA_DA_Bind solve_DPLL(
     DA_char vars = vars_copy(vars_original);
     DA_Bind binds = binds_zero(&vars);
 
-    printf("AST before: ");
-    AST_print(ast);
-    putchar('\n');
     pure_literal_elimination(&ast, &vars, &binds);
-    printf("AST after:  ");
+    printf("Final Expression: ");
     AST_print(ast);
     putchar('\n');
 
@@ -154,13 +152,9 @@ DA_DA_Bind solve_DPLL(
         if (result) {
             const DA_Bind solution = binds_copy(&binds);
             DA_APPEND(solutions, solution);
-            if (!all_solutions) {
-                break;
-            }
+            if (first_solution) { break; }
         }
-        if (binds_inc(&binds)) {
-            break;
-        }
+        if (binds_inc(&binds)) { break; }
     }
 
     binds_free(&binds);
@@ -193,18 +187,20 @@ int main(void) {
     DA_char vars = {0};
     AST *ast = parse_tokens(&toks, &vars);
 
-    printf("Expression: ");
-    AST_print(ast);
-    putchar('\n');
-
     printf("Variables: ");
-    for (size_t i = 0; i < vars.count; ++i) {
+    printf("%c", vars.items[0]);
+    for (size_t i = 1; i < vars.count; ++i) {
         printf(" %c", vars.items[i]);
     }
     putchar('\n');
 
-    //DA_DA_Bind solutions = solve_brute_force(ast, &vars, true);
-    DA_DA_Bind solutions = solve_DPLL(ast, &vars, true);
+    printf("Initial Expression: ");
+    AST_print(ast);
+    putchar('\n');
+
+    const bool first_solution = false;
+    //DA_DA_Bind solutions = solve_brute_force(ast, &vars, first_solution);
+    DA_DA_Bind solutions = solve_DPLL(ast, &vars, first_solution);
 
     AST_free(ast);
     vars_free(&vars);
