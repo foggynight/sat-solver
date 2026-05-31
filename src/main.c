@@ -105,7 +105,9 @@ void pure_literal_elimination(AST **ast, const DA_char *vars, DA_Bind *binds) {
         const char var = vars->items[i];
         const Polarity polarity = ple_get_polarity(*ast, var);
         if (polarity == POLARITY_TRUE || polarity == POLARITY_FALSE) {
-            // TODO: Mark this variable as locked to a specific value in binds.
+            Bind *bind = binds_find(binds, var);
+            bind->val = (polarity == POLARITY_TRUE);
+            bind->lock = true;
             ple_eliminate_clauses(ast, var);
         }
     }
@@ -116,7 +118,12 @@ void pure_literal_elimination(AST **ast, const DA_char *vars, DA_Bind *binds) {
 // DPLL: Davis-Putnam-Logemann-Loveland Algorithm, unit propagation and pure
 // literal elimination. Input AST must be in CNF.
 //
-//   `all_solutions`: If true, return all solutions, else just first.
+//   `all_solutions`: If true, return all solutions in impure search space, else just first.
+//
+// Note: DPLL reduces search space, thus not all solutions will be output.
+//   e.g. "(A + B)(A + C)(B + -B)(C + -C)" => A is pure true, no solutions with
+//   A = false will be checked and thus are not included in the output. Further,
+//   "(A + B)(A + C)" => A,B,C all pure, thus only solution checked is all true.
 DA_DA_Bind solve_DPLL(
     const AST *ast_original,
     const DA_char *vars_original,
@@ -128,20 +135,32 @@ DA_DA_Bind solve_DPLL(
     DA_char vars = vars_copy(vars_original);
     DA_Bind binds = binds_zero(&vars);
 
+    printf("AST before: ");
     AST_print(ast);
+    putchar('\n');
     pure_literal_elimination(&ast, &vars, &binds);
+    printf("AST after:  ");
     AST_print(ast);
+    putchar('\n');
 
-    for (size_t i = 0; i < (1u << vars.count); ++i) {
+    printf("Checking Binds:\n");
+    for (size_t i = 0; true; ++i) {
+        printf("  %ld: ", i);
+        binds_print(&binds);
+        putchar('\n');
         AST *result_ast = eval_ast_binds(ast, &binds);
         const bool result = AST_to_bool(result_ast);
         AST_free(result_ast);
         if (result) {
             const DA_Bind solution = binds_copy(&binds);
             DA_APPEND(solutions, solution);
-            if (!all_solutions) { break; }
+            if (!all_solutions) {
+                break;
+            }
         }
-        binds_inc(&binds);
+        if (binds_inc(&binds)) {
+            break;
+        }
     }
 
     binds_free(&binds);
@@ -158,6 +177,14 @@ int main(void) {
         fprintf(stderr, "error: unread input remaining\n");
         return 1;
     }
+
+    // TODO: Handle invalid inputs.
+    //fprintf(stderr, "input_buffer: \"%s\"\n", input_buffer);
+    if (cnt < 2) {
+        fprintf(stderr, "error: missing input expression\n");
+        return 1;
+    }
+
     input_buffer[cnt - 1] = '\0';  // destroy newline
     printf("String: \"%s\"\n", input_buffer);
 
@@ -182,10 +209,10 @@ int main(void) {
     AST_free(ast);
     vars_free(&vars);
 
-    printf("Solutions:\n");
+    printf("Found Solutions:\n");
     for (size_t i = 0; i < solutions.count; ++i) {
         DA_Bind sol = solutions.items[i];
-        printf("  %ld:", i+1);
+        printf("  %ld:", i);
         for (size_t j = 0; j < sol.count; ++j) {
             printf(" (%c %d)", sol.items[j].var, sol.items[j].val);
         }
