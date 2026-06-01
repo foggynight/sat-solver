@@ -24,8 +24,8 @@
 
 DA_Token lex_string(const char *str);
 
-AST *parse_tokens(DA_Token *toks, DA_char *vars);
-AST *parse_string(const char *str, DA_char *vars);
+AST *parse_tokens(DA_Token *toks, DA_Var *vars);
+AST *parse_string(const char *str, DA_Var *vars);
 
 #endif // PARSER_STANDARD_H
 
@@ -37,6 +37,7 @@ AST *parse_string(const char *str, DA_char *vars);
 
 #include "AST.h"
 #include "DA.h"
+#include "util.h"
 
 DA_Token lex_string(const char *str) {
     DA_Token toks = {0};
@@ -46,15 +47,19 @@ DA_Token lex_string(const char *str) {
         if (isspace(*s)) { continue; }
 
         Token tok = {0};
-        if (isalpha(*s)) { tok = (Token){ TOK_VAR, *s }; }
-        else {
+        if (isalnum(*s)) {
+            const char *end = s;
+            while (isalnum(*end)) { ++end; }
+            tok = (Token){ TOK_VAR, string_slice(s, 0, end - s) };
+            s = end - 1;
+        } else {
             switch (*s) {
-            case '+': tok = (Token){ TOK_PLUS, '+' }; break;
-            case '-': tok = (Token){ TOK_MINUS, '-' }; break;
-            case '*': tok = (Token){ TOK_STAR, '*' }; break;
-            case '(': tok = (Token){ TOK_PAREN_L, '(' }; break;
-            case ')': tok = (Token){ TOK_PAREN_R, ')' }; break;
-            default: error = true; tok = (Token){ TOK_ERR, *s }; break;
+            case '+': tok = (Token){ TOK_PLUS, "+" }; break;
+            case '-': tok = (Token){ TOK_MINUS, "-" }; break;
+            case '*': tok = (Token){ TOK_STAR, "*" }; break;
+            case '(': tok = (Token){ TOK_PAREN_L, "(" }; break;
+            case ')': tok = (Token){ TOK_PAREN_R, ")" }; break;
+            default: error = true; tok = (Token){ TOK_ERR, NULL }; break;
             }
         }
 
@@ -62,13 +67,13 @@ DA_Token lex_string(const char *str) {
         if (error) { break; }
     }
 
-    if (!error) { DA_APPEND(toks, ((Token){ TOK_END, '\0' })); }
+    if (!error) { DA_APPEND(toks, ((Token){ TOK_END, NULL })); }
     return toks;
 }
 
-AST *parse_expr(DA_Token *toks, DA_char *vars);
+AST *parse_expr(DA_Token *toks, DA_Var *vars);
 
-AST *parse_fact(DA_Token *toks, DA_char *vars) {
+AST *parse_fact(DA_Token *toks, DA_Var *vars) {
     if (DA_NEXT(*toks).kind == TOK_PAREN_L) {
         DA_DEQUE(*toks);
         AST *ast = parse_expr(toks, vars);
@@ -104,13 +109,13 @@ AST *parse_fact(DA_Token *toks, DA_char *vars) {
     fact->token = tok_var;
 
     bool contains;
-    DA_CONTAINS(*vars, tok_var.chr, &contains);
-    if (!contains) DA_APPEND(*vars, tok_var.chr);
+    DA_CONTAINS_STR(*vars, tok_var.var, &contains);
+    if (!contains) DA_APPEND(*vars, tok_var.var);
 
     return fact;
 }
 
-AST *parse_term(DA_Token *toks, DA_char *vars) {
+AST *parse_term(DA_Token *toks, DA_Var *vars) {
     AST *fact = parse_fact(toks, vars);
 
     if (!fact
@@ -128,7 +133,7 @@ AST *parse_term(DA_Token *toks, DA_char *vars) {
 
     AST *term = AST_make();
     term->kind = AST_BOP;
-    term->token = (Token){ TOK_STAR, '*' };
+    term->token = (Token){ TOK_STAR, "*" };
 
     AST *right = parse_term(toks, vars);
 
@@ -137,7 +142,7 @@ AST *parse_term(DA_Token *toks, DA_char *vars) {
     return term;
 }
 
-AST *parse_expr(DA_Token *toks, DA_char *vars) {
+AST *parse_expr(DA_Token *toks, DA_Var *vars) {
     AST *term = parse_term(toks, vars);
 
     if (!term) {
@@ -160,7 +165,7 @@ AST *parse_expr(DA_Token *toks, DA_char *vars) {
     return expr;
 }
 
-AST *parse_tokens(DA_Token *toks, DA_char *vars) {
+AST *parse_tokens(DA_Token *toks, DA_Var *vars) {
     AST *expr = parse_expr(toks, vars);
     if (DA_NEXT(*toks).kind != TOK_END) {
         return NULL;
@@ -169,7 +174,7 @@ AST *parse_tokens(DA_Token *toks, DA_char *vars) {
 }
 
 // TODO: This leaks tokens not stored in the AST.
-AST *parse_string(const char *str, DA_char *vars) {
+AST *parse_string(const char *str, DA_Var *vars) {
     DA_Token toks = lex_string(str);
     return parse_tokens(&toks, vars);
 }

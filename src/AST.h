@@ -16,9 +16,11 @@ typedef enum TokenKind {
     TOK_PAREN_R,
 } TokenKind;
 
+typedef char * Var;
+
 typedef struct Token {
     TokenKind kind;
-    char chr;
+    Var var;
 } Token;
 
 typedef enum ASTKind {
@@ -39,6 +41,7 @@ typedef struct AST {
     struct AST *right;
 } AST;
 
+typedef DA(Var) DA_Var;
 typedef DA(Token) DA_Token;
 
 AST *AST_make(void);
@@ -133,10 +136,10 @@ void AST_print(const AST *ast) {
     if (!ast) {
         printf("NULL");
     } else if (!(ast->left || ast->right)) {
-        printf("%c", ast->token.chr);
+        printf("%s", ast->token.var);
     } else {
         putchar('(');
-        printf("%c", ast->token.chr);
+        printf("%s", ast->token.var);
         if (ast->left != NULL) { putchar(' '); AST_print(ast->left); }
         if (ast->right != NULL) { putchar(' '); AST_print(ast->right); }
         putchar(')');

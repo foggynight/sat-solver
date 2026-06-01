@@ -11,11 +11,14 @@
 #define EVAL_IMPL
 #include "eval.h"
 
-#define PARSER_DIMACS_IMPL
-#include "parser_DIMACS.h"
+//#define PARSER_DIMACS_IMPL
+//#include "parser_DIMACS.h"
 
 #define PARSER_STANDARD_IMPL
 #include "parser_standard.h"
+
+#define UTIL_IMPL
+#include "util.h"
 
 #define INPUT_BUFSIZE 1048576
 
@@ -23,7 +26,7 @@
 // brute force by simply walking through each possible set of bindings linearly.
 DA_DA_Bind solve_brute_force(
     const AST *ast,
-    const DA_char *vars,
+    const DA_Var *vars,
     bool first_solution)
 {
     DA_DA_Bind solutions = {0};
@@ -50,7 +53,7 @@ DA_DA_Bind solve_brute_force(
 }
 
 // TODO
-//void unit_propagation(AST *ast, const DA_char *vars) {
+//void unit_propagation(AST *ast, const DA_Var *vars) {
 //
 //}
 
@@ -72,9 +75,9 @@ Polarity polarity_invert(Polarity pol) {
     __builtin_unreachable();
 }
 
-Polarity ple_get_polarity(const AST *ast, char var) {
+Polarity ple_get_polarity(const AST *ast, Var var) {
     if (ast->kind == AST_VAR) {
-        return (ast->token.chr == var) ? POLARITY_TRUE : POLARITY_NULL;
+        return (strcmp(ast->token.var, var) == 0) ? POLARITY_TRUE : POLARITY_NULL;
     }
 
     else if (ast->kind == AST_UOP) {
@@ -100,14 +103,14 @@ Polarity ple_get_polarity(const AST *ast, char var) {
     }
 }
 
-void ple_eliminate_clauses(AST **ast, char var) {
+void ple_eliminate_clauses(AST **ast, Var var) {
     if (ast || var) return;  // TODO: temp
 }
 
-void pure_literal_elimination(AST **ast, const DA_char *vars, DA_Bind *binds) {
+void pure_literal_elimination(AST **ast, const DA_Var *vars, DA_Bind *binds) {
     //puts("Eliminating pure literal clauses...");
     for (size_t i = 0; i < vars->count; ++i) {
-        const char var = vars->items[i];
+        const Var var = vars->items[i];
         const Polarity polarity = ple_get_polarity(*ast, var);
         if (polarity == POLARITY_TRUE || polarity == POLARITY_FALSE) {
             Bind *bind = binds_find(binds, var);
@@ -129,13 +132,13 @@ void pure_literal_elimination(AST **ast, const DA_char *vars, DA_Bind *binds) {
 //   "(A + B)(A + C)" => A,B,C all pure, thus only solution checked is all true.
 DA_DA_Bind solve_DPLL(
     const AST *ast_original,
-    const DA_char *vars_original,
+    const DA_Var *vars_original,
     bool first_solution)
 {
     DA_DA_Bind solutions = {0};
 
     AST *ast = AST_copy(ast_original);
-    DA_char vars = vars_copy(vars_original);
+    DA_Var vars = vars_copy(vars_original);
     DA_Bind binds = binds_zero(&vars);
 
     pure_literal_elimination(&ast, &vars, &binds);
@@ -166,7 +169,7 @@ DA_DA_Bind solve_DPLL(
     return solutions;
 }
 
-AST *parse_standard_expr(FILE *input, DA_char *vars) {
+AST *parse_standard_expr(FILE *input, DA_Var *vars) {
     char input_buffer[INPUT_BUFSIZE];
     if (!fgets(input_buffer, INPUT_BUFSIZE, input)) { return NULL; }
 
@@ -181,9 +184,9 @@ AST *parse_standard_expr(FILE *input, DA_char *vars) {
 
     printf("Input: \"%s\"\n", input_buffer);
     printf("Variables: ");
-    printf("%c", vars->items[0]);
+    printf("%s", vars->items[0]);
     for (size_t i = 1; i < vars->count; ++i) {
-        printf(" %c", vars->items[i]);
+        printf(" %s", vars->items[i]);
     }
     putchar('\n');
 
@@ -209,7 +212,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    DA_char vars = {0};
+    DA_Var vars = {0};
     AST *ast = parse_standard_expr(stdin, &vars);
     //AST *ast = parse_DIMACS_file(stdin, &vars);
     if (!ast) {
@@ -240,7 +243,7 @@ int main(int argc, char **argv) {
         DA_Bind sol = solutions.items[i];
         printf("  %ld:", i);
         for (size_t j = 0; j < sol.count; ++j) {
-            printf(" (%c %d)", sol.items[j].var, sol.items[j].val);
+            printf(" (%s %d)", sol.items[j].var, sol.items[j].val);
         }
         putchar('\n');
     }

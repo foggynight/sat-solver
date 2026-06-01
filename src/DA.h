@@ -39,15 +39,17 @@
 #define DA_DEQUE(xs) do { (xs).offset += 1; } while (0)
 #define DA_REQUE(xs) do { (xs).offset -= 1; } while (0)
 
-#define DA_CONTAINS(xs, x, p)                           \
-    do {                                                \
-        *(p) = false;                                   \
-        for (size_t i_ = 0; i_ < (xs).count; ++i_) {    \
-            if ((xs).items[i_] == (x)) *(p) = true;     \
-        }                                               \
+#define DA_CONTAINS_STR(xs, x, p)                               \
+    do {                                                        \
+        *(p) = false;                                           \
+        for (size_t i_ = 0; i_ < (xs).count; ++i_) {            \
+            if (strcmp((xs).items[i_], (x)) == 0) {             \
+                *(p) = true;                                    \
+            }                                                   \
+        }                                                       \
     } while (0)
 
-typedef DA(char) DA_char;
+//typedef DA(char) DA_char;
 
 void DA_error(const char *error_msg);
 

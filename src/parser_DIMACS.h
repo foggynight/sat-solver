@@ -37,6 +37,7 @@ AST *parse_DIMACS_file(FILE *file, DA_char *vars);
 #include <stdio.h>
 
 #include "AST.h"
+#include "util.h"
 
 #define DIMACS_LINE_MAX 1048576
 
@@ -52,15 +53,6 @@ static const char *skip_space(const char *str) {
 static const char *next_space(const char *str) {
     while (*str != ' ' && *str != '\t' && *str != '\n') { ++str; }
     return str;
-}
-
-static char *string_slice(const char *str, size_t i_start, size_t i_end) {
-    char *copy = malloc(i_end - i_start);
-    if (!copy) { return NULL; }
-    for (size_t i = i_start; i < i_end; ++i) {
-        copy[i] = str[i];
-    }
-    return copy;
 }
 
 const char *parse_DIMACS_header(
