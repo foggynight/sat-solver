@@ -1,13 +1,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  Boolean Expression Parser
+//  Parser for "Standard" Boolean Expressions
 //
 //  Parser Grammar:
+//
 //    E -> T ('+' E)?
 //    T -> F ('*'? T)?
 //    F -> '(' E ')'
 //       | '-' F
 //       | [A-Za-z]
+//
+//  e.g. "(A + B)(A + C)(B + C)"
+//    => (* (+ A B) (* (+ A C) (+ B C)))
 //
 //  Copyright (C) 2026 Robert Coffey
 //

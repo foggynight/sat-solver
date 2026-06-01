@@ -14,7 +14,9 @@
 #define PARSER_IMPL
 #include "parser.h"
 
-// TODO: About a MiB, good enough?
+#define PARSER_DIMACS_IMPL
+#include "parser_DIMACS.h"
+
 #define INPUT_BUFSIZE 1048576
 
 // Search for SAT solution given AST of expression and array of variables. Uses
@@ -99,7 +101,7 @@ Polarity ple_get_polarity(const AST *ast, char var) {
 }
 
 void ple_eliminate_clauses(AST **ast, char var) {
-
+    if (ast || var) return;  // TODO: temp
 }
 
 void pure_literal_elimination(AST **ast, const DA_char *vars, DA_Bind *binds) {
@@ -164,35 +166,38 @@ DA_DA_Bind solve_DPLL(
     return solutions;
 }
 
-int main(void) {
+AST *parse_standard_expr(FILE *input, DA_char *vars) {
     char input_buffer[INPUT_BUFSIZE];
-    size_t cnt = fread(input_buffer, 1, sizeof input_buffer, stdin);
-    if (getchar() != EOF) {
-        fprintf(stderr, "error: unread input remaining\n");
-        return 1;
-    }
+    if (!fgets(input_buffer, INPUT_BUFSIZE, input)) { return NULL; }
 
-    // TODO: Handle invalid inputs.
-    //fprintf(stderr, "input_buffer: \"%s\"\n", input_buffer);
-    if (cnt < 2) {
-        fprintf(stderr, "error: missing input expression\n");
-        return 1;
+    size_t input_len = strlen(input_buffer);
+    while (input_buffer[input_len - 1] == '\n') {
+        input_buffer[input_len - 1] = '\0';
+        --input_len;
     }
-
-    input_buffer[cnt - 1] = '\0';  // destroy newline
-    printf("String: \"%s\"\n", input_buffer);
 
     DA_Token toks = lex_string(input_buffer);
+    AST *ast = parse_tokens(&toks, vars);
 
-    DA_char vars = {0};
-    AST *ast = parse_tokens(&toks, &vars);
-
+    printf("Input: \"%s\"\n", input_buffer);
     printf("Variables: ");
-    printf("%c", vars.items[0]);
-    for (size_t i = 1; i < vars.count; ++i) {
-        printf(" %c", vars.items[i]);
+    printf("%c", vars->items[0]);
+    for (size_t i = 1; i < vars->count; ++i) {
+        printf(" %c", vars->items[i]);
     }
     putchar('\n');
+
+    return ast;
+}
+
+int main(void) {
+    DA_char vars = {0};
+    AST *ast = parse_standard_expr(stdin, &vars);
+    //AST *ast = parse_DIMACS_file(stdin, &vars);
+    if (!ast) {
+        fprintf(stderr, "error: failed to parse expression\n");
+        return 1;
+    }
 
     printf("Initial Expression: ");
     AST_print(ast);
