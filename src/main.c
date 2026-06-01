@@ -11,11 +11,11 @@
 #define EVAL_IMPL
 #include "eval.h"
 
-#define PARSER_IMPL
-#include "parser.h"
-
 #define PARSER_DIMACS_IMPL
 #include "parser_DIMACS.h"
+
+#define PARSER_STANDARD_IMPL
+#include "parser_standard.h"
 
 #define INPUT_BUFSIZE 1048576
 
@@ -105,7 +105,7 @@ void ple_eliminate_clauses(AST **ast, char var) {
 }
 
 void pure_literal_elimination(AST **ast, const DA_char *vars, DA_Bind *binds) {
-    puts("Eliminating pure literal clauses...");
+    //puts("Eliminating pure literal clauses...");
     for (size_t i = 0; i < vars->count; ++i) {
         const char var = vars->items[i];
         const Polarity polarity = ple_get_polarity(*ast, var);
@@ -139,9 +139,9 @@ DA_DA_Bind solve_DPLL(
     DA_Bind binds = binds_zero(&vars);
 
     pure_literal_elimination(&ast, &vars, &binds);
-    printf("Final Expression: ");
-    AST_print(ast);
-    putchar('\n');
+    //printf("Final Expression: ");
+    //AST_print(ast);
+    //putchar('\n');
 
     printf("Checking Binds:\n");
     for (size_t i = 0; true; ++i) {
@@ -190,7 +190,25 @@ AST *parse_standard_expr(FILE *input, DA_char *vars) {
     return ast;
 }
 
-int main(void) {
+typedef enum {
+    ALGO_NONE,
+    ALGO_BRUTE,
+    ALGO_DPLL,
+} Algorithm;
+
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        fprintf(stderr, "error: missing arguments: algorithm\n");
+        return 1;
+    }
+    Algorithm algorithm = ALGO_NONE;
+    if (strcmp(argv[1], "brute") == 0) { algorithm = ALGO_BRUTE; }
+    if (strcmp(argv[1], "dpll") == 0) { algorithm = ALGO_DPLL; }
+    if (algorithm == ALGO_NONE) {
+        fprintf(stderr, "error: invalid algorithm argument: %s\n", argv[1]);
+        return 1;
+    }
+
     DA_char vars = {0};
     AST *ast = parse_standard_expr(stdin, &vars);
     //AST *ast = parse_DIMACS_file(stdin, &vars);
@@ -199,13 +217,20 @@ int main(void) {
         return 1;
     }
 
-    printf("Initial Expression: ");
+    //printf("Initial Expression: ");
+    printf("Expression: ");
     AST_print(ast);
     putchar('\n');
 
     const bool first_solution = false;
-    //DA_DA_Bind solutions = solve_brute_force(ast, &vars, first_solution);
-    DA_DA_Bind solutions = solve_DPLL(ast, &vars, first_solution);
+    DA_DA_Bind solutions;
+    switch (algorithm) {
+        case ALGO_BRUTE: solutions = solve_brute_force(ast, &vars, first_solution); break;
+        case ALGO_DPLL:  solutions = solve_DPLL(ast, &vars, first_solution); break;
+        default:
+            assert(0 && "unreachable");
+            __builtin_unreachable();
+    }
 
     AST_free(ast);
     vars_free(&vars);

@@ -17,8 +17,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef PARSER_STANDARD_H
+#define PARSER_STANDARD_H
 
 #include "AST.h"
 
@@ -27,11 +27,11 @@ DA_Token lex_string(const char *str);
 AST *parse_tokens(DA_Token *toks, DA_char *vars);
 AST *parse_string(const char *str, DA_char *vars);
 
-#endif // PARSER_H
+#endif // PARSER_STANDARD_H
 
 
-#ifdef PARSER_IMPL
-#undef PARSER_IMPL
+#ifdef PARSER_STANDARD_IMPL
+#undef PARSER_STANDARD_IMPL
 
 #include <ctype.h>
 
@@ -174,4 +174,4 @@ AST *parse_string(const char *str, DA_char *vars) {
     return parse_tokens(&toks, vars);
 }
 
-#endif // PARSER_IMPL
+#endif // PARSER_STANDARD_IMPL
