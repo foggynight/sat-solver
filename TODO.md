@@ -1,3 +1,6 @@
 - [x] add brute force search for solving
+- [x] add DIMACS CNF parser
 - [ ] add DPLL algorithm for solving
-- [ ] add DIMACS CNF parser
+- [ ] either:
+    - same associativity with standard/DIMACS (both left or both right)
+    - AST "binary" operator apply to > 2 children e.g. 1 + 2 + 3 => (+ 1 2 3)

@@ -24,7 +24,7 @@
 
 #include "AST.h"
 
-AST *parse_DIMACS_file(FILE *file, DA_char *vars);
+AST *parse_DIMACS_file(FILE *file, DA_Var *vars);
 
 #endif // PARSER_DIMACS_H
 
@@ -33,7 +33,6 @@ AST *parse_DIMACS_file(FILE *file, DA_char *vars);
 #undef PARSER_DIMACS_IMPL
 
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 
 #include "AST.h"
@@ -41,24 +40,22 @@ AST *parse_DIMACS_file(FILE *file, DA_char *vars);
 
 #define DIMACS_LINE_MAX 1048576
 
-typedef const char * DIMACS_Variable;
-typedef DA(DIMACS_Variable) DIMACS_Clause;
-typedef DA(DIMACS_Clause) DA_DIMACS_Clause;
-
 static const char *skip_space(const char *str) {
     while (*str == ' ' || *str == '\t') { ++str; }
     return str;
 }
 
-static const char *next_space(const char *str) {
-    while (*str != ' ' && *str != '\t' && *str != '\n') { ++str; }
+static const char *next_blank(const char *str) {
+    while (*str != ' ' && *str != '\t' && *str != '\n' && *str != '\0') {
+        ++str;
+    }
     return str;
 }
 
-const char *parse_DIMACS_header(
+static const char *parse_DIMACS_header(
     const char *line,
-    uint64_t *cnt_vars,
-    uint64_t *cnt_clauses)
+    size_t *cnt_vars,
+    size_t *cnt_clauses)
 {
     char *tmp_end;
 
@@ -79,15 +76,57 @@ const char *parse_DIMACS_header(
     return line;
 }
 
-AST *parse_DIMACS_file(FILE *file, DA_char *vars) {
+static const char *parse_DIMACS_clause(
+    const char *line,
+    DA_Var *vars,
+    AST **out_clause)
+{
+    AST *clause = NULL;
+
+    while (true) {
+        const char *term_end = next_blank(line);
+
+        const bool negated = (*line == '-');
+        if (negated) { ++line; }
+
+        const size_t term_len = term_end - line;
+        const Var var = string_slice(line, 0, term_len);
+
+        if (strcmp(var, "0") == 0) {
+            if (negated) {
+                fprintf(
+                    stderr,
+                    "error: invalid term, negated zero\nline: %s\n",
+                    line);
+                return NULL;
+            }
+            break;
+        }
+
+        bool contains;
+        DA_CONTAINS_STR(*vars, var, &contains);
+        if (!contains) { DA_APPEND(*vars, var); }
+
+        AST * const base_term = AST_make_var(var);
+        AST * const term = negated ? AST_make_not(base_term) : base_term;
+        clause = (clause == NULL) ? term : AST_make_or(clause, term);
+
+        line = skip_space(term_end);
+    }
+
+    *out_clause = clause;
+    return line;
+}
+
+AST *parse_DIMACS_file(FILE *file, DA_Var *vars) {
     if (file == NULL) {
         fprintf(stderr, "error: failed to parse DIMACS file, file is NULL");
         return NULL;
     }
 
     char line_buffer[DIMACS_LINE_MAX];
-    DA_DIMACS_Clause clauses = {0};
-    uint64_t cnt_vars = 0, cnt_clauses = 0;
+    DA_AST_ptr clauses = {0};
+    size_t cnt_vars = 0, cnt_clauses = 0;
 
     // Parse header from input.
     while (fgets(line_buffer, sizeof(line_buffer), file) != NULL) {
@@ -109,46 +148,47 @@ AST *parse_DIMACS_file(FILE *file, DA_char *vars) {
             return NULL;
         }
 
-        // TODO: temp
-        printf("# vars = %ld, # clauses = %ld\n", cnt_vars, cnt_clauses);
-
         break;
     }
 
     // Parse clauses from input.
+    size_t clauses_remaining = cnt_clauses;
     while (fgets(line_buffer, sizeof(line_buffer), file) != NULL) {
         const char *line = skip_space(line_buffer);
 
         // Skip comments and empty line.
         if (line[0] == 'c' || line[0] == '\n') { continue; }
 
-        if (cnt_clauses == 0) {
+        if (clauses_remaining == 0) {
             fprintf(stderr, "error: too many clauses in input\n");
             return NULL;
         }
-        --cnt_clauses;
+        --clauses_remaining;
 
-        DIMACS_Clause clause = {0};
-        for (uint64_t i = 0; i < cnt_vars; ++i) {
-            const char *var_end = next_space(line);
-            if (line == var_end) {
-                fprintf(stderr, "error: failed to parse clause, not enough variables\n");
-                return NULL;
-            }
-            line = skip_space(var_end);
-            DA_APPEND(clause, string_slice(line, 0, var_end - line));
-        }
+        AST *clause = NULL;
+        line = parse_DIMACS_clause(line, vars, &clause);
         DA_APPEND(clauses, clause);
     }
-    if (cnt_clauses > 0) {
+
+    assert(clauses.count == cnt_clauses);
+    if (clauses_remaining > 0) {
         fprintf(stderr, "error: not enough clauses in input\n");
+        return NULL;
+    }
+    if (vars->count > cnt_vars) {
+        fprintf(stderr, "error: too many variables in input\n");
         return NULL;
     }
 
     // Build AST from clauses.
     AST *ast = NULL;
+    for (size_t i = 0; i < clauses.count; ++i) {
+        AST *clause = clauses.items[i];
+        if (!ast) { ast = clause; }
+        else { ast = AST_make_and(ast, clause); }
+    }
 
-    DA_FREE(clauses);
+    free(clauses.items);
     return ast;
 }
 

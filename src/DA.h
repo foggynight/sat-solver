@@ -15,8 +15,6 @@
         size_t offset;                          \
     }
 
-#define DA_FREE(xs) do { if ((xs).capacity > 0) { free(xs.items); } } while (0)
-
 // e.g.
 //   typedef DA(int) DA_int;
 //   DA_int ns;
@@ -48,8 +46,6 @@
             }                                                   \
         }                                                       \
     } while (0)
-
-//typedef DA(char) DA_char;
 
 void DA_error(const char *error_msg);
 

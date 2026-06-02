@@ -140,16 +140,16 @@ AST *eval_ast_binds(const AST *ast, const DA_Bind *binds) {
 
     case AST_UOP:
         if (*(ast->token.var) != '-') { return NULL; }
-        return AST_not(eval_ast_binds(ast->right, binds));
+        return AST_eval_not(eval_ast_binds(ast->right, binds));
 
     case AST_BOP: {
         const AST *left_val = eval_ast_binds(ast->left, binds);
         const AST *right_val = eval_ast_binds(ast->right, binds);
         switch (*(ast->token.var)) {
         case '*':
-            return AST_and(left_val, right_val);
+            return AST_eval_and(left_val, right_val);
         case '+':
-            return AST_or(left_val, right_val);
+            return AST_eval_or(left_val, right_val);
         default:
             return NULL;
         }

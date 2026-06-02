@@ -11,8 +11,8 @@
 #define EVAL_IMPL
 #include "eval.h"
 
-//#define PARSER_DIMACS_IMPL
-//#include "parser_DIMACS.h"
+#define PARSER_DIMACS_IMPL
+#include "parser_DIMACS.h"
 
 #define PARSER_STANDARD_IMPL
 #include "parser_standard.h"
@@ -213,8 +213,8 @@ int main(int argc, char **argv) {
     }
 
     DA_Var vars = {0};
-    AST *ast = parse_standard_expr(stdin, &vars);
-    //AST *ast = parse_DIMACS_file(stdin, &vars);
+    //AST *ast = parse_standard_expr(stdin, &vars);
+    AST *ast = parse_DIMACS_file(stdin, &vars);
     if (!ast) {
         fprintf(stderr, "error: failed to parse expression\n");
         return 1;
