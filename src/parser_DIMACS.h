@@ -38,7 +38,7 @@ AST *parse_DIMACS_file(FILE *file, DA_Var *vars);
 #include "AST.h"
 #include "util.h"
 
-#define DIMACS_LINE_MAX 1048576
+#define LINE_MAX_DIMACS 1048576
 
 static const char *skip_space(const char *str) {
     while (*str == ' ' || *str == '\t') { ++str; }
@@ -124,12 +124,12 @@ AST *parse_DIMACS_file(FILE *file, DA_Var *vars) {
         return NULL;
     }
 
-    char line_buffer[DIMACS_LINE_MAX];
+    char line_buffer[LINE_MAX_DIMACS];
     DA_AST_ptr clauses = {0};
     size_t cnt_vars = 0, cnt_clauses = 0;
 
     // Parse header from input.
-    while (fgets(line_buffer, sizeof(line_buffer), file) != NULL) {
+    while (fgets(line_buffer, sizeof line_buffer, file) != NULL) {
         const char *line = skip_space(line_buffer);
 
         // Skip comments and empty line.

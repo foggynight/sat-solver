@@ -39,6 +39,8 @@ AST *parse_string(const char *str, DA_Var *vars);
 #include "DA.h"
 #include "util.h"
 
+#define LINE_MAX_STANDARD 1048576
+
 DA_Token lex_string(const char *str) {
     DA_Token toks = {0};
     bool error = false;
@@ -173,10 +175,36 @@ AST *parse_tokens(DA_Token *toks, DA_Var *vars) {
     return expr;
 }
 
+// TODO: Remove?
 // TODO: This leaks tokens not stored in the AST.
-AST *parse_string(const char *str, DA_Var *vars) {
-    DA_Token toks = lex_string(str);
-    return parse_tokens(&toks, vars);
+//AST *parse_string(const char *str, DA_Var *vars) {
+//    DA_Token toks = lex_string(str);
+//    return parse_tokens(&toks, vars);
+//}
+
+// TODO: This parses only a single line.
+AST *parse_standard_expr(FILE *input, DA_Var *vars) {
+    char input_buffer[LINE_MAX_STANDARD];
+    if (!fgets(input_buffer, LINE_MAX_STANDARD, input)) { return NULL; }
+
+    size_t input_len = strlen(input_buffer);
+    while (input_buffer[input_len - 1] == '\n') {
+        input_buffer[input_len - 1] = '\0';
+        --input_len;
+    }
+
+    DA_Token toks = lex_string(input_buffer);
+    AST *ast = parse_tokens(&toks, vars);
+
+    printf("Input: \"%s\"\n", input_buffer);
+    printf("Variables: ");
+    printf("%s", vars->items[0]);
+    for (size_t i = 1; i < vars->count; ++i) {
+        printf(" %s", vars->items[i]);
+    }
+    putchar('\n');
+
+    return ast;
 }
 
 #endif // PARSER_STANDARD_IMPL
