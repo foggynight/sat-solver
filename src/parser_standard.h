@@ -22,10 +22,7 @@
 
 #include "AST.h"
 
-DA_Token lex_string(const char *str);
-
-AST *parse_tokens(DA_Token *toks, DA_Var *vars);
-AST *parse_string(const char *str, DA_Var *vars);
+AST *parse_standard_expr(FILE *input, DA_Var *vars);
 
 #endif // PARSER_STANDARD_H
 
@@ -41,7 +38,7 @@ AST *parse_string(const char *str, DA_Var *vars);
 
 #define LINE_MAX_STANDARD 1048576
 
-DA_Token lex_string(const char *str) {
+static DA_Token lex_string(const char *str) {
     DA_Token toks = {0};
     bool error = false;
 
@@ -73,9 +70,9 @@ DA_Token lex_string(const char *str) {
     return toks;
 }
 
-AST *parse_expr(DA_Token *toks, DA_Var *vars);
+static AST *parse_expr(DA_Token *toks, DA_Var *vars);
 
-AST *parse_fact(DA_Token *toks, DA_Var *vars) {
+static AST *parse_fact(DA_Token *toks, DA_Var *vars) {
     if (DA_NEXT(*toks).kind == TOK_PAREN_L) {
         DA_DEQUE(*toks);
         AST *ast = parse_expr(toks, vars);
@@ -117,7 +114,7 @@ AST *parse_fact(DA_Token *toks, DA_Var *vars) {
     return fact;
 }
 
-AST *parse_term(DA_Token *toks, DA_Var *vars) {
+static AST *parse_term(DA_Token *toks, DA_Var *vars) {
     AST *fact = parse_fact(toks, vars);
 
     if (!fact
@@ -144,7 +141,7 @@ AST *parse_term(DA_Token *toks, DA_Var *vars) {
     return term;
 }
 
-AST *parse_expr(DA_Token *toks, DA_Var *vars) {
+static AST *parse_expr(DA_Token *toks, DA_Var *vars) {
     AST *term = parse_term(toks, vars);
 
     if (!term) {
@@ -167,20 +164,13 @@ AST *parse_expr(DA_Token *toks, DA_Var *vars) {
     return expr;
 }
 
-AST *parse_tokens(DA_Token *toks, DA_Var *vars) {
+static AST *parse_tokens(DA_Token *toks, DA_Var *vars) {
     AST *expr = parse_expr(toks, vars);
     if (DA_NEXT(*toks).kind != TOK_END) {
         return NULL;
     }
     return expr;
 }
-
-// TODO: Remove?
-// TODO: This leaks tokens not stored in the AST.
-//AST *parse_string(const char *str, DA_Var *vars) {
-//    DA_Token toks = lex_string(str);
-//    return parse_tokens(&toks, vars);
-//}
 
 // TODO: This parses only a single line.
 AST *parse_standard_expr(FILE *input, DA_Var *vars) {
