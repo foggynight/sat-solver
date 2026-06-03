@@ -1,0 +1,5 @@
+c (A + B)(A + C)(B + C)
+p cnf 3 3
+A B 0
+A C 0
+B C 0
