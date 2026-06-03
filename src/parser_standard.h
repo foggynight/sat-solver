@@ -176,6 +176,7 @@ static AST *parse_tokens(DA_Token *toks, DA_Var *vars) {
 AST *parse_standard_expr(FILE *input, DA_Var *vars) {
     char input_buffer[LINE_MAX_STANDARD];
     if (!fgets(input_buffer, LINE_MAX_STANDARD, input)) { return NULL; }
+    printf("Input: \"%s\"\n", input_buffer);
 
     size_t input_len = strlen(input_buffer);
     while (input_buffer[input_len - 1] == '\n') {
@@ -185,14 +186,6 @@ AST *parse_standard_expr(FILE *input, DA_Var *vars) {
 
     DA_Token toks = lex_string(input_buffer);
     AST *ast = parse_tokens(&toks, vars);
-
-    printf("Input: \"%s\"\n", input_buffer);
-    printf("Variables: ");
-    printf("%s", vars->items[0]);
-    for (size_t i = 1; i < vars->count; ++i) {
-        printf(" %s", vars->items[i]);
-    }
-    putchar('\n');
 
     return ast;
 }

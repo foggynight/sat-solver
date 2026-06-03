@@ -129,7 +129,9 @@ AST *parse_DIMACS_file(FILE *file, DA_Var *vars) {
     size_t cnt_vars = 0, cnt_clauses = 0;
 
     // Parse header from input.
+    printf("Input: \"");
     while (fgets(line_buffer, sizeof line_buffer, file) != NULL) {
+        printf("%s", line_buffer);
         const char *line = skip_space(line_buffer);
 
         // Skip comments and empty line.
@@ -154,6 +156,7 @@ AST *parse_DIMACS_file(FILE *file, DA_Var *vars) {
     // Parse clauses from input.
     size_t clauses_remaining = cnt_clauses;
     while (fgets(line_buffer, sizeof(line_buffer), file) != NULL) {
+        printf("%s", line_buffer);
         const char *line = skip_space(line_buffer);
 
         // Skip comments and empty line.
@@ -170,6 +173,7 @@ AST *parse_DIMACS_file(FILE *file, DA_Var *vars) {
         DA_APPEND(clauses, clause);
     }
 
+    printf("\"\n");
     assert(clauses.count == cnt_clauses);
     if (clauses_remaining > 0) {
         fprintf(stderr, "error: not enough clauses in input\n");

@@ -1,3 +1,15 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+//  SAT Solver (Algorithms: Brute Force, DPLL)
+//
+//  Usage: sat-solver ALGORITHM
+//    ALGORITHM: {brute,dpll}
+//    Reads input expression from stdin.
+//
+//  Copyright (C) 2026 Robert Coffey
+//
+////////////////////////////////////////////////////////////////////////////////
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +59,13 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    printf("Variables: ");
+    printf("%s", vars.items[0]);
+    for (size_t i = 1; i < vars.count; ++i) {
+        printf(" %s", vars.items[i]);
+    }
+    putchar('\n');
+
     //printf("Initial Expression: ");
     printf("Expression: ");
     AST_print(ast);
@@ -55,15 +74,15 @@ int main(int argc, char **argv) {
     const bool first_solution = false;
     DA_DA_Bind solutions;
     switch (algorithm) {
-        case ALGO_BRUTE:
-            solutions = solve_brute_force(ast, &vars, first_solution);
-            break;
-        case ALGO_DPLL:
-            solutions = solve_DPLL(ast, &vars, first_solution);
-            break;
-        default:
-            assert(0 && "unreachable");
-            __builtin_unreachable();
+    case ALGO_BRUTE:
+        solutions = solve_brute_force(ast, &vars, first_solution);
+        break;
+    case ALGO_DPLL:
+        solutions = solve_DPLL(ast, &vars, first_solution);
+        break;
+    default:
+        assert(0 && "unreachable");
+        __builtin_unreachable();
     }
 
     AST_free(ast);
