@@ -2,8 +2,9 @@
 //
 //  SAT Solver (Algorithms: Brute Force, DPLL)
 //
-//  Usage: sat-solver ALGORITHM
-//    ALGORITHM: {brute,dpll}
+//  Usage: sat-solver [-a ALGORITHM] [-p PARSER]
+//    ALGORITHM: brute, dpll
+//    PARSER: standard, dimacs
 //    Reads input expression from stdin.
 //
 //  Copyright (C) 2026 Robert Coffey
