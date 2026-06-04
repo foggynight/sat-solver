@@ -10,9 +10,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #define AST_IMPL
 #include "AST.h"
@@ -38,26 +41,59 @@ typedef enum {
     ALGO_DPLL,
 } Algorithm;
 
+typedef enum {
+    PARS_NONE,
+    PARS_STD,
+    PARS_DIMACS,
+} Parser;
+
+void error(const char *msg, ...) {
+    va_list args;
+    va_start(args, msg);
+    fprintf(stderr, "error: ");
+    fprintf(stderr, msg, args);
+    putc('\n', stderr);
+    exit(1);
+}
+
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        fprintf(stderr, "error: missing arguments: algorithm\n");
-        return 1;
+    Algorithm algorithm = ALGO_DPLL;
+    Parser parser = PARS_STD;
+
+    int opt;
+    while ((opt = getopt(argc, argv, "a:p:")) != -1) {
+        switch (opt) {
+        case 'a':
+            if      (strcasecmp(optarg, "brute") == 0) { algorithm = ALGO_BRUTE; }
+            else if (strcasecmp(optarg, "dpll") == 0)  { algorithm = ALGO_DPLL; }
+            else { error("invalid -a argument: %s", optarg); }
+            break;
+        case 'p':
+            if      (strcasecmp(optarg, "std") == 0)      { parser = PARS_STD; }
+            else if (strcasecmp(optarg, "standard") == 0) { parser = PARS_STD; }
+            else if (strcasecmp(optarg, "dimacs") == 0)   { parser = PARS_DIMACS; }
+            else { error("invalid -p argument: %s", optarg); }
+            break;
+        case '?':
+            return 1;
+        default:
+            abort();
+        }
     }
-    Algorithm algorithm = ALGO_NONE;
-    if (strcmp(argv[1], "brute") == 0) { algorithm = ALGO_BRUTE; }
-    if (strcmp(argv[1], "dpll") == 0) { algorithm = ALGO_DPLL; }
-    if (algorithm == ALGO_NONE) {
-        fprintf(stderr, "error: invalid algorithm argument: %s\n", argv[1]);
-        return 1;
-    }
+    if (algorithm == ALGO_NONE) { error("missing algorithm option"); }
+    if (parser == PARS_NONE)    { error("missing parser option"); }
 
     DA_Var vars = {0};
-    //AST *ast = parse_standard_expr(stdin, &vars);
-    AST *ast = parse_DIMACS_file(stdin, &vars);
-    if (!ast) {
-        fprintf(stderr, "error: failed to parse expression\n");
-        return 1;
+    AST *ast;
+    switch (parser) {
+    case PARS_STD:    ast = parse_standard_expr(stdin, &vars); break;
+    case PARS_DIMACS: ast = parse_DIMACS_file(stdin, &vars); break;
+    default: assert(0 && "unreachable"); __builtin_unreachable();
     }
+    if (!ast) { error("failed to parse expression"); }
+
+    printf("Parser: %s\n", (parser == PARS_STD) ? "standard" : "DIMACS");
+    printf("Algorithm: %s\n", (algorithm == ALGO_BRUTE) ? "brute" : "DPLL");
 
     printf("Variables: ");
     printf("%s", vars.items[0]);
@@ -74,15 +110,9 @@ int main(int argc, char **argv) {
     const bool first_solution = false;
     DA_DA_Bind solutions;
     switch (algorithm) {
-    case ALGO_BRUTE:
-        solutions = solve_brute_force(ast, &vars, first_solution);
-        break;
-    case ALGO_DPLL:
-        solutions = solve_DPLL(ast, &vars, first_solution);
-        break;
-    default:
-        assert(0 && "unreachable");
-        __builtin_unreachable();
+    case ALGO_BRUTE: solutions = solve_brute_force(ast, &vars, first_solution); break;
+    case ALGO_DPLL: solutions = solve_DPLL(ast, &vars, first_solution); break;
+    default: assert(0 && "unreachable"); __builtin_unreachable();
     }
 
     AST_free(ast);
