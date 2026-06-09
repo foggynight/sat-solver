@@ -4,7 +4,7 @@
 //
 //  Usage: sat-solver [-a ALGORITHM] [-p PARSER]
 //    ALGORITHM: brute, dpll
-//    PARSER: standard, dimacs
+//    PARSER: infix, dimacs
 //    Reads input expression from stdin.
 //
 //  Copyright (C) 2026 Robert Coffey
@@ -28,7 +28,7 @@
 //#define PARSER_DIMACS_IMPL
 //#include "parser_DIMACS.h"
 
-#include "parser_standard.h"
+#include "parser_infix.h"
 #include "util.h"
 
 typedef enum {
@@ -39,7 +39,7 @@ typedef enum {
 
 typedef enum {
     PARS_NONE,
-    PARS_STD,
+    PARS_INFIX,
     PARS_DIMACS,
 } Parser;
 
@@ -54,7 +54,7 @@ void error(const char *msg, ...) {
 
 int main(int argc, char **argv) {
     Algorithm algorithm = ALGO_DPLL;
-    Parser parser = PARS_STD;
+    Parser parser = PARS_INFIX;
 
     int opt;
     while ((opt = getopt(argc, argv, "a:p:")) != -1) {
@@ -65,8 +65,7 @@ int main(int argc, char **argv) {
             else { error("invalid -a argument: %s", optarg); }
             break;
         case 'p':
-            if      (strcasecmp(optarg, "std") == 0)      { parser = PARS_STD; }
-            else if (strcasecmp(optarg, "standard") == 0) { parser = PARS_STD; }
+            if      (strcasecmp(optarg, "infix") == 0) { parser = PARS_INFIX; }
             else if (strcasecmp(optarg, "dimacs") == 0)   { parser = PARS_DIMACS; }
             else { error("invalid -p argument: %s", optarg); }
             break;
@@ -82,13 +81,13 @@ int main(int argc, char **argv) {
     DA_Var vars = {0};
     AST *ast;
     switch (parser) {
-    case PARS_STD:    ast = parse_standard_expr(stdin, &vars); break;
+    case PARS_INFIX:    ast = parse_expr_infix(stdin, &vars); break;
     //case PARS_DIMACS: ast = parse_DIMACS_file(stdin, &vars); break;
     default: assert(0 && "unreachable"); __builtin_unreachable();
     }
     if (!ast) { error("failed to parse expression"); }
 
-    printf("Parser: %s\n", (parser == PARS_STD) ? "standard" : "DIMACS");
+    printf("Parser: %s\n", (parser == PARS_INFIX) ? "infix" : "DIMACS");
     printf("Algorithm: %s\n", (algorithm == ALGO_BRUTE) ? "brute" : "DPLL");
 
     printf("Variables: ");

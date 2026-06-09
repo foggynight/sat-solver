@@ -56,6 +56,10 @@ typedef struct AST_list {
 typedef DA(Var) DA_Var;
 typedef DA(Token) DA_Token;
 
+Token Token_plus(void);
+Token Token_minus(void);
+Token Token_star(void);
+
 AST *AST_make(void);
 AST *AST_append(AST *parent, AST *child);
 AST *AST_copy(const AST *ast);

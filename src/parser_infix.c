@@ -1,4 +1,4 @@
-#include "parser_standard.h"
+#include "parser_infix.h"
 
 #include <ctype.h>
 
@@ -6,7 +6,7 @@
 #include "DA.h"
 #include "util.h"
 
-#define LINE_MAX_STANDARD 1048576
+#define LINE_MAX_INFIX 1048576
 
 static DA_Token lex_string(const char *str) {
     DA_Token toks = {0};
@@ -60,7 +60,10 @@ static AST *parse_fact(DA_Token *toks, DA_Var *vars) {
         DA_DEQUE(*toks);
 
         AST *right = parse_fact(toks, vars);
-        if (!right) { return NULL; }
+        if (!right) {
+            AST_free(unary);
+            return NULL;
+        }
 
         AST_append(unary, right);
         return unary;
@@ -85,53 +88,59 @@ static AST *parse_fact(DA_Token *toks, DA_Var *vars) {
 }
 
 static AST *parse_term(DA_Token *toks, DA_Var *vars) {
-    AST *fact = parse_fact(toks, vars);
+    AST *term, *fact;
 
-    if (!fact
-        || (DA_NEXT(*toks).kind != TOK_VAR
-            && DA_NEXT(*toks).kind != TOK_MINUS
-            && DA_NEXT(*toks).kind != TOK_STAR
-            && DA_NEXT(*toks).kind != TOK_PAREN_L))
+    fact = parse_fact(toks, vars);
+    if (fact == NULL) { return NULL; }
+    if (DA_NEXT(*toks).kind != TOK_VAR
+        && DA_NEXT(*toks).kind != TOK_MINUS
+        && DA_NEXT(*toks).kind != TOK_STAR
+        && DA_NEXT(*toks).kind != TOK_PAREN_L)
     {
         return fact;
     }
+    if (DA_NEXT(*toks).kind == TOK_STAR) { DA_DEQUE(*toks); }
 
-    if (DA_NEXT(*toks).kind == TOK_STAR) {
-        DA_DEQUE(*toks);
+    term = AST_make();
+    term->kind = AST_OP;
+    term->token = Token_star();
+    AST_append(term, fact);
+
+    while ((fact = parse_fact(toks, vars)) != NULL) {
+        AST_append(term, fact);
+        if (DA_NEXT(*toks).kind != TOK_VAR
+            && DA_NEXT(*toks).kind != TOK_MINUS
+            && DA_NEXT(*toks).kind != TOK_STAR
+            && DA_NEXT(*toks).kind != TOK_PAREN_L)
+        {
+            break;
+        }
+        if (DA_NEXT(*toks).kind == TOK_STAR) { DA_DEQUE(*toks); }
     }
 
-    AST *term = AST_make();
-    term->kind = AST_OP;
-    term->token = (Token){ TOK_STAR, "*" };
-
-    AST *right = parse_term(toks, vars);
-
-    AST_append(term, fact);
-    AST_append(term, right);
-    return term;
+    return (fact == NULL) ? NULL : term;
 }
 
 static AST *parse_expr(DA_Token *toks, DA_Var *vars) {
-    AST *term = parse_term(toks, vars);
+    AST *expr, *term;
 
-    if (!term) {
-        return NULL;
-    }
-
-    if (DA_NEXT(*toks).kind != TOK_PLUS) {
-        return term;
-    }
-
-    AST *expr = AST_make();
-    expr->kind = AST_OP;
-    expr->token = DA_NEXT(*toks);
+    term = parse_term(toks, vars);
+    if (term == NULL) { return NULL; }
+    if (DA_NEXT(*toks).kind != TOK_PLUS) { return term; }
     DA_DEQUE(*toks);
 
-    AST *right = parse_expr(toks, vars);
-
+    expr = AST_make();
+    expr->kind = AST_OP;
+    expr->token = Token_plus();
     AST_append(expr, term);
-    AST_append(expr, right);
-    return expr;
+
+    while ((term = parse_term(toks, vars)) != NULL) {
+        AST_append(expr, term);
+        if (DA_NEXT(*toks).kind != TOK_PLUS) { break; }
+        DA_DEQUE(*toks);
+    }
+
+    return (term == NULL) ? NULL : expr;
 }
 
 static AST *parse_tokens(DA_Token *toks, DA_Var *vars) {
@@ -142,11 +151,10 @@ static AST *parse_tokens(DA_Token *toks, DA_Var *vars) {
     return expr;
 }
 
-// TODO(URGENT): Convert chained binary ops to list of operands.
 // TODO: This parses only a single line.
-AST *parse_standard_expr(FILE *input, DA_Var *vars) {
-    char input_buffer[LINE_MAX_STANDARD];
-    if (!fgets(input_buffer, LINE_MAX_STANDARD, input)) { return NULL; }
+AST *parse_expr_infix(FILE *input, DA_Var *vars) {
+    char input_buffer[LINE_MAX_INFIX];
+    if (!fgets(input_buffer, LINE_MAX_INFIX, input)) { return NULL; }
     printf("Input: \"%s\"\n", input_buffer);
 
     size_t input_len = strlen(input_buffer);

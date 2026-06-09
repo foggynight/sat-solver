@@ -8,6 +8,10 @@ AST ast_true = { AST_TRUE, {0}, NULL };
 AST ast_false = { AST_FALSE, {0}, NULL };
 AST ast_null = { AST_NULL, {0}, NULL };
 
+Token Token_plus(void) { return (Token){ TOK_PLUS, "+" }; }
+Token Token_minus(void) { return (Token){ TOK_MINUS, "-" }; }
+Token Token_star(void) { return (Token){ TOK_STAR, "*" }; }
+
 static AST_list *AST_list_make(void) {
     AST_list *list = calloc(1, sizeof(AST_list));
     assert(list != NULL);

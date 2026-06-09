@@ -1,5 +1,6 @@
 - [x] add brute force search for solving
 - [x] add DIMACS CNF parser
-- [ ] AST: convert chained binary ops to list of operands
+- [x] parser_infix: replace chained binary ops to list of operands
 - [ ] change file structure, break single-header files into .c/.h
 - [ ] add DPLL algorithm for solving
+- [ ] add option to output solution in DIMACS CNF

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  Parser for "Standard" Boolean Expressions
+//  Parser for Infix Boolean Expressions
 //
 //  Parser Grammar:
 //
@@ -17,13 +17,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef PARSER_STANDARD_H
-#define PARSER_STANDARD_H
+#ifndef PARSER_INFIX_H
+#define PARSER_INFIX_H
 
 #include <stdio.h>
 
 #include "AST.h"
 
-AST *parse_standard_expr(FILE *input, DA_Var *vars);
+AST *parse_expr_infix(FILE *input, DA_Var *vars);
 
-#endif // PARSER_STANDARD_H
+#endif // PARSER_INFIX_H
