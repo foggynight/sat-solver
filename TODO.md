@@ -1,7 +1,5 @@
 - [x] add brute force search for solving
 - [x] add DIMACS CNF parser
-- [ ] add DPLL algorithm for solving
+- [ ] AST: convert chained binary ops to list of operands
 - [ ] change file structure, break single-header files into .c/.h
-- [ ] either:
-    - same associativity with standard/DIMACS (both left or both right)
-    - AST "binary" operator apply to > 2 children e.g. 1 + 2 + 3 => (+ 1 2 3)
+- [ ] add DPLL algorithm for solving

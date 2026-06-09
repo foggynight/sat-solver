@@ -10,6 +10,7 @@
 #define DA_H
 
 #include <stdlib.h>
+#include <string.h> // TODO: Hmm...
 
 // e.g. typedef DA(T) DA_T;
 #define DA(T)                                   \

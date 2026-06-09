@@ -11,6 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -18,22 +19,16 @@
 #include <string.h>
 #include <unistd.h>
 
-#define AST_IMPL
 #include "AST.h"
-
-#define DA_IMPL
 #include "DA.h"
 
-#define EVAL_IMPL
-#include "eval.h"
+//#define EVAL_IMPL
+//#include "eval.h"
+//
+//#define PARSER_DIMACS_IMPL
+//#include "parser_DIMACS.h"
 
-#define PARSER_DIMACS_IMPL
-#include "parser_DIMACS.h"
-
-#define PARSER_STANDARD_IMPL
 #include "parser_standard.h"
-
-#define UTIL_IMPL
 #include "util.h"
 
 typedef enum {
@@ -88,7 +83,7 @@ int main(int argc, char **argv) {
     AST *ast;
     switch (parser) {
     case PARS_STD:    ast = parse_standard_expr(stdin, &vars); break;
-    case PARS_DIMACS: ast = parse_DIMACS_file(stdin, &vars); break;
+    //case PARS_DIMACS: ast = parse_DIMACS_file(stdin, &vars); break;
     default: assert(0 && "unreachable"); __builtin_unreachable();
     }
     if (!ast) { error("failed to parse expression"); }
@@ -108,26 +103,50 @@ int main(int argc, char **argv) {
     AST_print(ast);
     putchar('\n');
 
-    const bool first_solution = false;
-    DA_DA_Bind solutions;
-    switch (algorithm) {
-    case ALGO_BRUTE: solutions = solve_brute_force(ast, &vars, first_solution); break;
-    case ALGO_DPLL: solutions = solve_DPLL(ast, &vars, first_solution); break;
-    default: assert(0 && "unreachable"); __builtin_unreachable();
-    }
+//    const bool first_solution = false;
+//    DA_DA_Bind solutions;
+//    switch (algorithm) {
+//    case ALGO_BRUTE: solutions = solve_brute_force(ast, &vars, first_solution); break;
+//    case ALGO_DPLL: solutions = solve_DPLL(ast, &vars, first_solution); break;
+//    default: assert(0 && "unreachable"); __builtin_unreachable();
+//    }
+//
+//    AST_free(ast);
+//    vars_free(&vars);
+//
+//    printf("Found Solutions:\n");
+//    for (size_t i = 0; i < solutions.count; ++i) {
+//        DA_Bind sol = solutions.items[i];
+//        printf("  %ld:", i);
+//        for (size_t j = 0; j < sol.count; ++j) {
+//            printf(" (%s %d)", sol.items[j].var, sol.items[j].val);
+//        }
+//        putchar('\n');
+//    }
+//
+//    return 0;
+//}
 
-    AST_free(ast);
-    vars_free(&vars);
-
-    printf("Found Solutions:\n");
-    for (size_t i = 0; i < solutions.count; ++i) {
-        DA_Bind sol = solutions.items[i];
-        printf("  %ld:", i);
-        for (size_t j = 0; j < sol.count; ++j) {
-            printf(" (%s %d)", sol.items[j].var, sol.items[j].val);
-        }
-        putchar('\n');
-    }
-
-    return 0;
+//    AST *A = AST_make_var("A");
+//    AST *B = AST_make_var("B");
+//    AST *C = AST_make_var("C");
+//    AST *D = AST_make_var("D");
+//
+//    AST *F = AST_make_and();
+//    AST_append(F, A);
+//    AST_append(F, B);
+//    AST_append(F, C);
+//    AST_append(F, D);
+//
+//    AST *G = AST_make_and();
+//    AST_append(G, D);
+//    AST_append(G, C);
+//    AST_append(G, B);
+//    AST_append(G, A);
+//
+//    AST *H = AST_make_or();
+//    AST_append(H, F);
+//    AST_append(H, G);
+//
+//    AST_print(H);
 }
