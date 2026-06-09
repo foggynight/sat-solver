@@ -33,32 +33,42 @@ typedef struct Token {
 
 typedef enum ASTKind {
     AST_ERR,
+    AST_NULL,
 
     AST_TRUE,
     AST_FALSE,
 
     AST_VAR,
-    AST_UOP,
-    AST_BOP,
+    AST_OP,
 } ASTKind;
 
 typedef struct AST {
     ASTKind kind;
     Token token;
-    struct AST *left;
-    struct AST *right;
+    struct AST_list *children;
 } AST;
+
+typedef struct AST_list {
+    AST *ast;
+    struct AST_list *next;
+} AST_list;
 
 typedef DA(Var) DA_Var;
 typedef DA(Token) DA_Token;
-typedef DA(AST *) DA_AST_ptr;
 
 AST *AST_make(void);
+AST *AST_append(AST *parent, AST *child);
 AST *AST_copy(const AST *ast);
 void AST_free(AST *ast);
 
 AST *AST_true(void);
 AST *AST_false(void);
+AST *AST_null(void);
+
+AST *AST_make_var(Var var);
+AST *AST_make_not(AST *ast);
+AST *AST_make_and(void);
+AST *AST_make_or(void);
 
 bool AST_is_bool(const AST *ast);
 bool AST_to_bool(const AST *ast);
@@ -71,121 +81,3 @@ AST *AST_eval_or(const AST *ast1, const AST *ast2);
 void AST_print(const AST *ast);
 
 #endif // AST_H
-
-
-#ifdef AST_IMPL
-#undef AST_IMPL
-
-#include <assert.h>
-#include <stdlib.h>
-
-AST ast_true = { AST_TRUE, {0}, NULL, NULL };
-AST ast_false = { AST_FALSE, {0}, NULL, NULL };
-
-AST *AST_true(void) { return &ast_true; }
-AST *AST_false(void) { return &ast_false; }
-
-AST *AST_make(void) {
-    AST *ast = calloc(1, sizeof(AST));
-    assert(ast != NULL);
-    return ast;
-}
-
-AST *AST_make_var(Var var) {
-    AST *ast = AST_make();
-    ast->kind = AST_VAR;
-    ast->token = (Token){ TOK_VAR, var };
-    return ast;
-}
-
-AST *AST_make_not(AST *ast) {
-    AST *not = AST_make();
-    not->kind = AST_UOP;
-    not->token = (Token){ TOK_MINUS, "-" };
-    not->right = ast;
-    return not;
-}
-
-AST *AST_make_and(AST *ast1, AST *ast2) {
-    AST *and = AST_make();
-    and->kind = AST_BOP;
-    and->token = (Token){ TOK_STAR, "*" };
-    and->left = ast1;
-    and->right = ast2;
-    return and;
-}
-
-AST *AST_make_or(AST *ast1, AST *ast2) {
-    AST *or = AST_make();
-    or->kind = AST_BOP;
-    or->token = (Token){ TOK_PLUS, "+" };
-    or->left = ast1;
-    or->right = ast2;
-    return or;
-}
-
-AST *AST_copy(const AST *ast) {
-    if (ast == NULL) { return NULL; }
-    AST *copy = AST_make();
-    copy->kind = ast->kind;
-    copy->token = ast->token; // TODO: Should copy token, for now let it leak.
-    copy->left = AST_copy(ast->left);
-    copy->right = AST_copy(ast->right);
-    return copy;
-}
-
-void AST_free(AST *ast) {
-    if (ast == &ast_true || ast == &ast_false) { return; }
-    if (ast->left != NULL) { AST_free(ast->left); }
-    if (ast->right != NULL) { AST_free(ast->right); }
-    free(ast);
-}
-
-bool AST_is_bool(const AST *ast) {
-    return ast->kind == AST_TRUE || ast->kind == AST_FALSE;
-}
-
-bool AST_to_bool(const AST *ast) {
-    assert(AST_is_bool(ast));
-    return (ast->kind == AST_TRUE) ? true : false;
-}
-
-AST *bool_to_AST(bool val) {
-    return val ? AST_true() : AST_false();
-}
-
-AST *AST_eval_not(const AST *ast) {
-    if (!ast) { return NULL; }
-    if (!AST_is_bool(ast)) { return NULL; }
-    return (ast->kind == AST_TRUE) ? AST_false() : AST_true();
-}
-
-AST *AST_eval_and(const AST *ast1, const AST *ast2) {
-    if (!ast1 || !ast2) { return NULL; }
-    if (!AST_is_bool(ast1) || !AST_is_bool(ast2)) { return NULL; }
-    return (ast1->kind == AST_TRUE && ast2->kind == AST_TRUE)
-        ? AST_true() : AST_false();
-}
-
-AST *AST_eval_or(const AST *ast1, const AST *ast2) {
-    if (!ast1 || !ast2) { return NULL; }
-    if (!AST_is_bool(ast1) || !AST_is_bool(ast2)) { return NULL; }
-    return (ast1->kind == AST_TRUE || ast2->kind == AST_TRUE)
-        ? AST_true() : AST_false();
-}
-
-void AST_print(const AST *ast) {
-    if (!ast) {
-        printf("NULL");
-    } else if (!(ast->left || ast->right)) {
-        printf("%s", ast->token.var);
-    } else {
-        putchar('(');
-        printf("%s", ast->token.var);
-        if (ast->left != NULL) { putchar(' '); AST_print(ast->left); }
-        if (ast->right != NULL) { putchar(' '); AST_print(ast->right); }
-        putchar(')');
-    }
-}
-
-#endif // AST_IMPL
