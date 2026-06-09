@@ -20,6 +20,14 @@
         size_t offset;                          \
     }
 
+#define DA_FORWARD_DECLARE(T)                   \
+    struct T {                                  \
+        void *items;                            \
+        size_t count;                           \
+        size_t capacity;                        \
+        size_t offset;                          \
+    }
+
 // e.g.
 //   typedef DA(int) DA_int;
 //   DA_int ns;
@@ -55,16 +63,3 @@
 void DA_error(const char *error_msg);
 
 #endif // DA_H
-
-
-#ifdef DA_IMPL
-#undef DA_IMPL
-
-#include <stdio.h>
-
-void DA_error(const char *error_msg) {
-    fprintf(stderr, "DA_error: %s\n", error_msg);
-    exit(1);
-}
-
-#endif
