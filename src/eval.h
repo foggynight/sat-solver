@@ -82,7 +82,7 @@ DA_Var vars_copy(const DA_Var *vars) {
     DA_Var copy = *vars;
     copy.items = malloc(vars->capacity * sizeof(Var));
     assert(copy.items != NULL);
-    memcpy(copy.items, vars->items, vars->count * sizeof(Bind));
+    memcpy(copy.items, vars->items, vars->count * sizeof(Var));
     return copy;
 }
 
