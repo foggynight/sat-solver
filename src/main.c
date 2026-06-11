@@ -21,10 +21,8 @@
 
 #include "AST.h"
 #include "DA.h"
+#include "eval.h"
 
-//#define EVAL_IMPL
-//#include "eval.h"
-//
 //#define PARSER_DIMACS_IMPL
 //#include "parser_DIMACS.h"
 
@@ -102,29 +100,26 @@ int main(int argc, char **argv) {
     AST_print(ast);
     putchar('\n');
 
-//    const bool first_solution = false;
-//    DA_DA_Bind solutions;
-//    switch (algorithm) {
-//    case ALGO_BRUTE: solutions = solve_brute_force(ast, &vars, first_solution); break;
-//    case ALGO_DPLL: solutions = solve_DPLL(ast, &vars, first_solution); break;
-//    default: assert(0 && "unreachable"); __builtin_unreachable();
-//    }
-//
-//    AST_free(ast);
-//    vars_free(&vars);
-//
-//    printf("Found Solutions:\n");
-//    for (size_t i = 0; i < solutions.count; ++i) {
-//        DA_Bind sol = solutions.items[i];
-//        printf("  %ld:", i);
-//        for (size_t j = 0; j < sol.count; ++j) {
-//            printf(" (%s %d)", sol.items[j].var, sol.items[j].val);
-//        }
-//        putchar('\n');
-//    }
-//
-//    return 0;
-//}
+    const bool first_solution = false;
+    DA_Solution solutions;
+    switch (algorithm) {
+    case ALGO_BRUTE: solutions = solve_brute_force(ast, &vars, first_solution); break;
+    case ALGO_DPLL: solutions = solve_DPLL(ast, &vars, first_solution); break;
+    default: assert(0 && "unreachable"); __builtin_unreachable();
+    }
+
+    AST_free(ast);
+    vars_free(&vars);
+
+    printf("Found Solutions:\n");
+    for (size_t i = 0; i < solutions.count; ++i) {
+        DA_Bind sol = solutions.items[i];
+        printf("  %ld:", i);
+        for (size_t j = 0; j < sol.count; ++j) {
+            printf(" (%s %d)", sol.items[j].var, sol.items[j].val);
+        }
+        putchar('\n');
+    }
 
 //    AST *A = AST_make_var("A");
 //    AST *B = AST_make_var("B");
@@ -148,4 +143,6 @@ int main(int argc, char **argv) {
 //    AST_append(H, G);
 //
 //    AST_print(H);
+
+    return 0;
 }

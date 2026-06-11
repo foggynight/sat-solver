@@ -56,6 +56,9 @@ typedef struct AST_list {
 typedef DA(Var) DA_Var;
 typedef DA(Token) DA_Token;
 
+DA_Var vars_copy(const DA_Var *vars);
+void vars_free(DA_Var *vars);
+
 Token Token_plus(void);
 Token Token_minus(void);
 Token Token_star(void);
