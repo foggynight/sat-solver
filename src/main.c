@@ -101,11 +101,17 @@ int main(int argc, char **argv) {
     putchar('\n');
 
     const bool first_solution = false;
-    DA_Solution solutions;
+    DA_Solution solutions = {0};
+    const char *error_msg = NULL;
     switch (algorithm) {
-    case ALGO_BRUTE: solutions = solve_brute_force(ast, &vars, first_solution); break;
-    case ALGO_DPLL: solutions = solve_DPLL(ast, &vars, first_solution); break;
+    case ALGO_BRUTE: error_msg = solve_brute_force(ast, &vars, first_solution, &solutions); break;
+    case ALGO_DPLL: error_msg = solve_DPLL(ast, &vars, first_solution, &solutions); break;
     default: assert(0 && "unreachable"); __builtin_unreachable();
+    }
+
+    if (error_msg != NULL) {
+        printf("error: %s\n", error_msg);
+        return 1;
     }
 
     AST_free(ast);
@@ -120,29 +126,6 @@ int main(int argc, char **argv) {
         }
         putchar('\n');
     }
-
-//    AST *A = AST_make_var("A");
-//    AST *B = AST_make_var("B");
-//    AST *C = AST_make_var("C");
-//    AST *D = AST_make_var("D");
-//
-//    AST *F = AST_make_and();
-//    AST_append(F, A);
-//    AST_append(F, B);
-//    AST_append(F, C);
-//    AST_append(F, D);
-//
-//    AST *G = AST_make_and();
-//    AST_append(G, D);
-//    AST_append(G, C);
-//    AST_append(G, B);
-//    AST_append(G, A);
-//
-//    AST *H = AST_make_or();
-//    AST_append(H, F);
-//    AST_append(H, G);
-//
-//    AST_print(H);
 
     return 0;
 }

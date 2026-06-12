@@ -96,14 +96,21 @@ AST *AST_true(void);
 AST *AST_false(void);
 AST *AST_null(void);
 
+bool AST_is_bool(const AST *ast);
+bool AST_to_bool(const AST *ast);
+AST *bool_to_AST(bool val);
+
+bool AST_is_var(const AST *ast);
+bool AST_is_op(const AST *ast);
+bool AST_is_not(const AST *ast);
+bool AST_is_and(const AST *ast);
+bool AST_is_or(const AST *ast);
+bool AST_is_CNF(const AST *ast);
+
 AST *AST_make_var(Var var);
 AST *AST_make_not(AST *ast);
 AST *AST_make_and(void);
 AST *AST_make_or(void);
-
-bool AST_is_bool(const AST *ast);
-bool AST_to_bool(const AST *ast);
-AST *bool_to_AST(bool val);
 
 AST *AST_eval_not(const AST *ast);
 AST *AST_eval_and(const AST *ast1, const AST *ast2);

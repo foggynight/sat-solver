@@ -11,12 +11,14 @@
 
 // Search for SAT solution given AST of expression and array of variables. Uses
 // brute force by simply walking through each possible set of bindings linearly.
-DA_Solution solve_brute_force(
+const char *solve_brute_force(
     const AST *ast,
     const DA_Var *vars,
-    bool first_solution)
+    bool first_solution,
+    DA_Solution *solutions)
 {
-    DA_Solution solutions = {0};
+    if (!AST_is_CNF(ast)) { return "AST not in CNF"; }
+
     DA_Bind binds = binds_zero(vars);
 
     printf("Checking Binds:\n");
@@ -29,14 +31,14 @@ DA_Solution solve_brute_force(
         AST_free(result_ast);
         if (result) {
             const DA_Bind solution = binds_copy(&binds);
-            DA_APPEND(solutions, solution);
+            DA_APPEND(*solutions, solution);
             if (first_solution) { break; }
         }
         binds_inc(&binds);
     }
 
     binds_free(&binds);
-    return solutions;
+    return NULL;
 }
 
 // TODO
@@ -105,39 +107,30 @@ static Polarity ple_get_polarity(const AST *ast, Var var) {
     UNREACHABLE();
 }
 
-// TODO: Assert AST is in CNF, which is required for this function.
-static AST *ple_eliminate_clauses(const AST *ast, Var var) {
-//    switch (ast->kind) {
-//    case AST_VAR:
-//        return (ast->token.var == var) ? AST_null() : ast;
-//
-//    case AST_UOP: {
-//        AST *inner = ple_eliminate_clauses(ast->right, var);
-//        return (inner->kind == AST_NULL) ? inner : ast;
-//
-//    }
-//
-//    case AST_BOP: break;
-//
-//    default:
-//        // TODO: Can you get here without an error, e.g. empty expression?
-//        fprintf(
-//            stderr,
-//            "error: failed to eliminate clauses, invalid AST kind: %d",
-//            ast->kind);
-//        exit(1);
-//    }
-    return NULL;
+// AST must be CNF, thus cases:
+//   1. AST is just a variable.
+//   2. AST is conjunction of clauses (vars and disjunctions).
+static AST *ple_eliminate_clauses(AST *ast, Var var) {
+    if (ast->kind == AST_TRUE || ast->kind == AST_FALSE) {
+        assert(0 && "hit?");
+    }
+    if (ast->kind == AST_VAR) {
+        return (ast->token.var == var) ? AST_true() : ast;
+    } else if (ast->kind != AST_OP) {
+        return NULL;
+    }
+
+    // AST confirmed to be
+
+    if (ast->token.kind == TOK_STAR) {
+
+    }
 }
 
-static AST *pure_literal_elimination(
-    const AST *ast,
-    const DA_Var *vars,
-    DA_Bind *binds)
-{
+static AST *pure_literal_elimination(AST *ast, DA_Bind *binds) {
     puts("Eliminating pure literal clauses...");
-    for (size_t i = 0; i < vars->count; ++i) {
-        const Var var = vars->items[i];
+    for (size_t i = 0; i < binds->count; ++i) {
+        const Var var = binds->items[i].var;
         const Polarity polarity = ple_get_polarity(ast, var);
         if (polarity == POLARITY_TRUE || polarity == POLARITY_FALSE) {
             Bind *bind = binds_find(binds, var);
@@ -149,8 +142,6 @@ static AST *pure_literal_elimination(
     return ast;
 }
 
-// TODO: Assert AST is in CNF.
-//
 // DPLL: Davis-Putnam-Logemann-Loveland Algorithm, unit propagation and pure
 // literal elimination. Input AST must be in CNF.
 //
@@ -158,18 +149,19 @@ static AST *pure_literal_elimination(
 //   e.g. "(A + B)(A + C)(B + -B)(C + -C)" => A is pure true, no solutions with
 //   A = false will be checked and thus are not included in the output. Further,
 //   "(A + B)(A + C)" => A,B,C all pure, thus only solution checked is all true.
-DA_Solution solve_DPLL(
+const char *solve_DPLL(
     const AST *ast_original,
     const DA_Var *vars_original,
-    bool first_solution)
+    bool first_solution,
+    DA_Solution *solutions)
 {
-    DA_Solution solutions = {0};
+    if (!AST_is_CNF(ast_original)) { return "AST not in CNF"; }
 
     AST *ast = AST_copy(ast_original);
     DA_Var vars = vars_copy(vars_original);
     DA_Bind binds = binds_zero(&vars);
 
-    ast = pure_literal_elimination(ast, &vars, &binds);
+    ast = pure_literal_elimination(ast, &binds);
     //printf("Final Expression: ");
     //AST_print(ast);
     //putchar('\n');
@@ -184,7 +176,7 @@ DA_Solution solve_DPLL(
         AST_free(result_ast);
         if (result) {
             const Solution solution = binds_copy(&binds);
-            DA_APPEND(solutions, solution);
+            DA_APPEND(*solutions, solution);
             if (first_solution) { break; }
         }
         if (binds_inc(&binds)) { break; }
@@ -193,6 +185,5 @@ DA_Solution solve_DPLL(
     binds_free(&binds);
     vars_free(&vars);
     AST_free(ast);
-
-    return solutions;
+    return NULL;
 }

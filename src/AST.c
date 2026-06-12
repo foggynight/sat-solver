@@ -157,6 +157,75 @@ AST *AST_true(void) { return &ast_true; }
 AST *AST_false(void) { return &ast_false; }
 AST *AST_null(void) { return &ast_null; }
 
+bool AST_is_bool(const AST *ast) {
+    return ast->kind == AST_TRUE || ast->kind == AST_FALSE;
+}
+
+bool AST_to_bool(const AST *ast) {
+    assert(AST_is_bool(ast));
+    return (ast->kind == AST_TRUE) ? true : false;
+}
+
+AST *bool_to_AST(bool val) {
+    return val ? AST_true() : AST_false();
+}
+
+bool AST_is_var(const AST *ast) {
+    return ast->kind == AST_VAR;
+}
+
+bool AST_is_op(const AST *ast) {
+    return ast->kind == AST_OP;
+}
+
+bool AST_is_not(const AST *ast) {
+    return ast->kind == AST_OP && ast->token.kind == TOK_MINUS;
+}
+
+bool AST_is_and(const AST *ast) {
+    return ast->kind == AST_OP && ast->token.kind == TOK_STAR;
+}
+
+bool AST_is_or(const AST *ast) {
+    return ast->kind == AST_OP && ast->token.kind == TOK_PLUS;
+}
+
+bool AST_has_single_child(const AST *ast) {
+    return ast->children != NULL && ast->children->next == NULL;
+}
+
+static bool AST_is_neg_var(const AST *ast) {
+    return AST_is_not(ast)
+        && AST_is_var(ast->children->ast)
+        && AST_has_single_child(ast);
+}
+
+static bool AST_is_disj_vars_or_negs(const AST *ast) {
+    if (AST_is_var(ast)) { return true; }
+    else if (!AST_is_or(ast)) { return false; }
+
+    for (AST_list *walk = ast->children; walk != NULL; walk = walk->next) {
+        if (!AST_is_var(walk->ast) && !AST_is_neg_var(walk->ast)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// TODO: There's some cases which this detects as not CNF but might count.
+// e.g. (A B)(A + B)(B + C), (A + B) + (B + C)
+bool AST_is_CNF(const AST *ast) {
+    if (AST_is_var(ast)) { return true; }
+    else if (!AST_is_and(ast)) { return false; }
+
+    for (AST_list *walk = ast->children; walk != NULL; walk = walk->next) {
+        if (!AST_is_disj_vars_or_negs(walk->ast)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 AST *AST_make_var(Var var) {
     AST *ast = AST_make();
     ast->kind = AST_VAR;
@@ -181,19 +250,6 @@ static AST *AST_make_op(const Token tok) {
 
 AST *AST_make_and(void) { return AST_make_op(Token_star()); }
 AST *AST_make_or(void) { return AST_make_op(Token_plus()); }
-
-bool AST_is_bool(const AST *ast) {
-    return ast->kind == AST_TRUE || ast->kind == AST_FALSE;
-}
-
-bool AST_to_bool(const AST *ast) {
-    assert(AST_is_bool(ast));
-    return (ast->kind == AST_TRUE) ? true : false;
-}
-
-AST *bool_to_AST(bool val) {
-    return val ? AST_true() : AST_false();
-}
 
 AST *AST_eval_not(const AST *ast) {
     if (!ast) { return NULL; }

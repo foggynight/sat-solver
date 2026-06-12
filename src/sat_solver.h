@@ -15,14 +15,16 @@
 typedef DA_Bind Solution;
 typedef DA(Solution) DA_Solution;
 
-DA_Solution solve_brute_force(
+const char *solve_brute_force(
     const AST *ast,
     const DA_Var *vars,
-    bool first_solution);
+    bool first_solution,
+    DA_Solution *solutions);
 
-DA_Solution solve_DPLL(
+const char *solve_DPLL(
     const AST *ast_original,
     const DA_Var *vars_original,
-    bool first_solution);
+    bool first_solution,
+    DA_Solution *solutions);
 
 #endif // SAT_SOLVER_H
