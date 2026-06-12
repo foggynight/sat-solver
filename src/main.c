@@ -21,12 +21,12 @@
 
 #include "AST.h"
 #include "DA.h"
-#include "eval.h"
 
 //#define PARSER_DIMACS_IMPL
 //#include "parser_DIMACS.h"
 
 #include "parser_infix.h"
+#include "sat_solver.h"
 #include "util.h"
 
 typedef enum {
