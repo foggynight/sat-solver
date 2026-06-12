@@ -5,29 +5,23 @@
 
 import random
 
-var_names = (
-    [chr(ord('A') + i) for i in range(26)]
-    + [chr(ord('a') + i) for i in range(26)]
-)
-
-term_count = 100
-term_size  = 100
+var_count = 200      # total number of variables
+clause_size = 200    # number of variables per clause
+clause_count = 200  # number of clauses
 
 if __name__ == "__main__":
     expr = ''
 
-    for i in range(term_count):
+    for i in range(clause_count):
         expr += '('
 
-        if random.choice([True, False]):
-            expr += '-'
-        expr += var_names[random.randint(0, len(var_names) - 1)]
+        if random.choice([True, False]): expr += '-'
+        expr += str(random.randint(1, var_count))
 
-        for j in range(term_size - 1):
+        for j in range(clause_size - 1):
             expr += '+'
-            if random.choice([True, False]):
-                expr += '-'
-            expr += var_names[random.randint(0, len(var_names) - 1)]
+            if random.choice([True, False]): expr += '-'
+            expr += str(random.randint(1, var_count))
 
         expr += ')'
 
