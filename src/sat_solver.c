@@ -21,7 +21,11 @@ const char *solve_brute_force(
 
     DA_Bind binds = binds_zero(vars);
 
+    printf("Final Expression:   ");
+    AST_print(ast);
+    putchar('\n');
     printf("Checking Binds:\n");
+
     for (size_t i = 0; i < (1u << vars->count); ++i) {
         printf("  %ld: ", i);
         binds_print(&binds);
@@ -107,37 +111,79 @@ static Polarity ple_get_polarity(const AST *ast, Var var) {
     UNREACHABLE();
 }
 
-// AST must be CNF, thus cases:
-//   1. AST is just a variable.
-//   2. AST is conjunction of clauses (vars and disjunctions).
-static AST *ple_eliminate_clauses(AST *ast, Var var) {
-    if (ast->kind == AST_TRUE || ast->kind == AST_FALSE) {
-        assert(0 && "hit?");
+static bool AST_clause_contains_var(const AST *ast, const Var var) {
+    assert(AST_is_or(ast));
+    for (AST_list *walk = ast->children; walk != NULL; walk = walk->next) {
+        assert(AST_is_var(walk->ast) || AST_is_not(walk->ast));
+        if (AST_eq_var(walk->ast, var) || AST_eq_negvar(walk->ast, var)) {
+            return true;
+        }
     }
-    if (ast->kind == AST_VAR) {
-        return (ast->token.var == var) ? AST_true() : ast;
-    } else if (ast->kind != AST_OP) {
-        return NULL;
-    }
-
-    // AST confirmed to be
-
-    if (ast->token.kind == TOK_STAR) {
-
-    }
+    return false;
 }
 
-static AST *pure_literal_elimination(AST *ast, DA_Bind *binds) {
-    puts("Eliminating pure literal clauses...");
+// Create new AST which is a copy of `ast_original` such that clauses which
+// contain a pure variable are omitted. If all clauses are eliminated, returns
+// "true" AST.
+static AST *pure_literal_elimination(const AST *ast_original, DA_Bind *binds) {
+    puts("DPLL: Eliminating pure literal clauses...");
+
+    // Determine purity and polarity of variables in AST.
     for (size_t i = 0; i < binds->count; ++i) {
         const Var var = binds->items[i].var;
-        const Polarity polarity = ple_get_polarity(ast, var);
+        const Polarity polarity = ple_get_polarity(ast_original, var);
         if (polarity == POLARITY_TRUE || polarity == POLARITY_FALSE) {
-            Bind *bind = binds_find(binds, var);
+            Bind * const bind = binds_find(binds, var);
             bind->val = (polarity == POLARITY_TRUE);
-            bind->lock = true;
-            ple_eliminate_clauses(ast, var);
+            bind->pure = true;
         }
+    }
+
+    // Check if original AST is just a single variable.
+    // TODO: This check should be done before determining purity above. Can
+    //       short circuit and bail out with true AST.
+    if (AST_is_var(ast_original)) {
+        if (AST_eq_var(ast_original, binds->items[0].var)) {
+            return AST_true();
+        } else {
+            return AST_copy(ast_original);
+        }
+    }
+
+    // Original AST is a conjunction of clauses.
+    assert(AST_is_and(ast_original));
+    AST *ast = AST_make_and();
+
+    // Append clauses which contain no impure variables.
+    for (AST_list *walk = ast_original->children;
+         walk != NULL;
+         walk = walk->next)
+    {
+        bool skip = false;
+        for (size_t i = 0; i < binds->count; ++i) {
+            const Bind bind = binds->items[i];
+            if (!bind.pure) { continue; }
+            if (AST_clause_contains_var(walk->ast, bind.var)) {
+                skip = true;
+                break;
+            }
+        }
+        if (!skip) {
+            AST_append(ast, AST_copy(walk->ast));
+        }
+    }
+
+    // If all clauses eliminated, return true AST.
+    if (ast->children == NULL) {
+        return AST_true();
+    }
+    // If there is a single clause in new AST, return just that clause.
+    else if (AST_has_single_child(ast)) {
+        AST *child = ast->children->ast;
+        AST_list_free(ast->children);
+        ast->children = NULL;
+        AST_free(ast);
+        return child;
     }
     return ast;
 }
@@ -157,21 +203,20 @@ const char *solve_DPLL(
 {
     if (!AST_is_CNF(ast_original)) { return "AST not in CNF"; }
 
-    AST *ast = AST_copy(ast_original);
     DA_Var vars = vars_copy(vars_original);
     DA_Bind binds = binds_zero(&vars);
 
-    ast = pure_literal_elimination(ast, &binds);
-    //printf("Final Expression: ");
-    //AST_print(ast);
-    //putchar('\n');
+    AST * const ast = pure_literal_elimination(ast_original, &binds);
+    printf("Final Expression:   ");
+    AST_print(ast);
+    putchar('\n');
 
     printf("Checking Binds:\n");
     for (size_t i = 0; true; ++i) {
         printf("  %ld: ", i);
         binds_print(&binds);
         putchar('\n');
-        AST *result_ast = AST_eval_binds(ast, &binds);
+        AST * const result_ast = AST_eval_binds(ast, &binds);
         const bool result = AST_to_bool(result_ast);
         AST_free(result_ast);
         if (result) {

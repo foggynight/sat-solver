@@ -36,7 +36,7 @@ static AST *binds_lookup(const DA_Bind *binds, Var var) {
 }
 
 void Bind_print(const Bind *bind) {
-    const char *name = bind->lock ? "pure" : "bind";
+    const char *name = bind->pure ? "pure" : "bind";
     printf("(%s %s %d)", name, bind->var, bind->val);
 }
 
@@ -72,7 +72,7 @@ Bind *binds_find(DA_Bind *binds, Var var) {
 bool binds_inc(DA_Bind *binds) {
     bool carry = true;
     for (size_t i = 0; i < binds->count; ++i) {
-        if (binds->items[i].lock == true) { continue; }
+        if (binds->items[i].pure == true) { continue; }
         const bool next_val = (binds->items[i].val != carry);
         carry = (binds->items[i].val && carry);
         binds->items[i].val = next_val;
@@ -97,13 +97,13 @@ Token Token_plus(void) { return (Token){ TOK_PLUS, "+" }; }
 Token Token_minus(void) { return (Token){ TOK_MINUS, "-" }; }
 Token Token_star(void) { return (Token){ TOK_STAR, "*" }; }
 
-static AST_list *AST_list_make(void) {
-    AST_list *list = calloc(1, sizeof(AST_list));
-    assert(list != NULL);
-    return list;
+AST_list *AST_list_make(void) {
+    AST_list *ast_list = calloc(1, sizeof(AST_list));
+    assert(ast_list != NULL);
+    return ast_list;
 }
 
-static AST_list *AST_list_append(AST_list *list, AST *ast) {
+AST_list *AST_list_append(AST_list *list, AST *ast) {
     if (list == NULL) {
         list = AST_list_make();
         list->ast = ast;
@@ -118,6 +118,15 @@ static AST_list *AST_list_append(AST_list *list, AST *ast) {
     list->next = AST_list_make();
     list->next->ast = ast;
     return head;
+}
+
+void AST_list_free(AST_list *ast_list) {
+    AST_list *prev;
+    while (ast_list != NULL) {
+        prev = ast_list;
+        ast_list = ast_list->next;
+        free(prev);
+    }
 }
 
 AST *AST_make(void) {
@@ -150,6 +159,7 @@ void AST_free(AST *ast) {
     {
         AST_free(walk->ast);
     }
+    AST_list_free(ast->children);
     free(ast);
 }
 
@@ -194,7 +204,7 @@ bool AST_has_single_child(const AST *ast) {
     return ast->children != NULL && ast->children->next == NULL;
 }
 
-static bool AST_is_neg_var(const AST *ast) {
+static bool AST_is_negvar(const AST *ast) {
     return AST_is_not(ast)
         && AST_is_var(ast->children->ast)
         && AST_has_single_child(ast);
@@ -205,7 +215,7 @@ static bool AST_is_disj_vars_or_negs(const AST *ast) {
     else if (!AST_is_or(ast)) { return false; }
 
     for (AST_list *walk = ast->children; walk != NULL; walk = walk->next) {
-        if (!AST_is_var(walk->ast) && !AST_is_neg_var(walk->ast)) {
+        if (!AST_is_var(walk->ast) && !AST_is_negvar(walk->ast)) {
             return false;
         }
     }
@@ -224,6 +234,15 @@ bool AST_is_CNF(const AST *ast) {
         }
     }
     return true;
+}
+
+bool AST_eq_var(const AST *ast, Var var) {
+    return AST_is_var(ast) && strcmp(ast->token.var, var) == 0;
+}
+
+bool AST_eq_negvar(const AST *ast, Var var) {
+    if (!AST_is_not(ast)) { return false; }
+    return AST_eq_var(ast->children->ast, var);
 }
 
 AST *AST_make_var(Var var) {
@@ -290,7 +309,6 @@ AST *AST_eval_binds(const AST *ast, const DA_Bind *binds) {
             return AST_eval_not(AST_eval_binds(ast->children->ast, binds));
 
         case TOK_STAR:
-            assert(ast->children->next != NULL); // Assert multiple children.
             evaluated_ast = NULL;
             child_list = ast->children;
             do {
@@ -304,7 +322,6 @@ AST *AST_eval_binds(const AST *ast, const DA_Bind *binds) {
             return evaluated_ast;
 
         case TOK_PLUS:
-            assert(ast->children->next != NULL); // Assert multiple children.
             evaluated_ast = NULL;
             child_list = ast->children;
             do {
@@ -330,6 +347,10 @@ AST *AST_eval_binds(const AST *ast, const DA_Bind *binds) {
 void AST_print(const AST *ast) {
     if (!ast) {
         printf("NULL");
+    } else if (ast->kind == AST_TRUE) {
+        printf("TRUE");
+    } else if (ast->kind == AST_FALSE) {
+        printf("FALSE");
     } else if (ast->kind == AST_VAR) {
         printf("%s", ast->token.var);
     } else if (ast->kind == AST_OP) {

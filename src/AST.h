@@ -14,9 +14,9 @@
 typedef char * Var;
 
 typedef struct {
-    Var var;   // variable
+    Var var;   // variable name
     bool val;  // bound value
-    bool lock; // is variable pure
+    bool pure; // is variable pure
 } Bind;
 
 typedef enum TokenKind {
@@ -76,7 +76,7 @@ Bind *binds_find(DA_Bind *binds, Var var);
 // Increment variable bindings, like binary increment with first binding
 // corresponding to least significant digit.
 //
-// Skips locked bindings as if they don't exist.
+// Skips pure variables as if they don't exist.
 //
 // Returns true when binds was modified, else false.
 bool binds_inc(DA_Bind *binds);
@@ -86,6 +86,10 @@ void binds_print(const DA_Bind *binds);
 Token Token_plus(void);
 Token Token_minus(void);
 Token Token_star(void);
+
+AST_list *AST_list_make(void);
+AST_list *AST_list_append(AST_list *list, AST *ast);
+void AST_list_free(AST_list *ast_list);
 
 AST *AST_make(void);
 AST *AST_append(AST *parent, AST *child);
@@ -106,6 +110,11 @@ bool AST_is_not(const AST *ast);
 bool AST_is_and(const AST *ast);
 bool AST_is_or(const AST *ast);
 bool AST_is_CNF(const AST *ast);
+
+bool AST_has_single_child(const AST *ast);
+
+bool AST_eq_var(const AST *ast, Var var);
+bool AST_eq_negvar(const AST *ast, Var var);
 
 AST *AST_make_var(Var var);
 AST *AST_make_not(AST *ast);

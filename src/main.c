@@ -50,6 +50,20 @@ void error(const char *msg, ...) {
     exit(1);
 }
 
+//int main(void) {
+//    AST *ast = AST_make_or();
+//    AST_append(ast, AST_make_var("A"));
+//    AST_print(ast);
+//    putchar('\n');
+//
+//    DA_Bind binds = {0};
+//    DA_APPEND(binds, ((Bind){ "A", true, false }));
+//
+//    AST *result = AST_eval_binds(ast, &binds);
+//    AST_print(result);
+//    putchar('\n');
+//}
+
 int main(int argc, char **argv) {
     Algorithm algorithm = ALGO_DPLL;
     Parser parser = PARS_INFIX;
@@ -95,8 +109,8 @@ int main(int argc, char **argv) {
     }
     putchar('\n');
 
-    //printf("Initial Expression: ");
-    printf("Expression: ");
+    printf("Initial Expression: ");
+    //printf("Expression: ");
     AST_print(ast);
     putchar('\n');
 
