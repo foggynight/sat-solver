@@ -79,7 +79,8 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
 
         if (!AST_is_or(walk_ast)) {
             CNF_Var cnf_var;
-            const bool cnf_var_found = CNF_Var_from_AST(walk_ast, ast_vars, &cnf_var);
+            const bool cnf_var_found = CNF_Var_from_AST(
+                walk_ast, ast_vars, &cnf_var);
             assert(cnf_var_found);
             CNF_Clause clause = {0};
             DA_APPEND(clause, cnf_var);
@@ -94,9 +95,7 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
             {
                 CNF_Var cnf_var;
                 const bool cnf_var_found = CNF_Var_from_AST(
-                    walk_var->ast,
-                    ast_vars,
-                    &cnf_var);
+                    walk_var->ast, ast_vars, &cnf_var);
                 assert(cnf_var_found);
                 DA_APPEND(clause, cnf_var);
             }

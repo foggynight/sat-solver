@@ -71,7 +71,8 @@ static Polarity polarity_invert(Polarity pol) {
 static Polarity ple_get_polarity(const AST *ast, Var var) {
     switch (ast->kind) {
     case AST_VAR:
-        return (strcmp(ast->token.var, var) == 0) ? POLARITY_TRUE : POLARITY_NULL;
+        return (strcmp(ast->token.var, var) == 0)
+            ? POLARITY_TRUE : POLARITY_NULL;
 
     case AST_OP:
         assert(ast->children != NULL);
