@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include "AST.h"
+#include "CNF.h"
 #include "DA.h"
 
 //#define PARSER_DIMACS_IMPL
@@ -44,9 +45,7 @@ typedef enum {
 void error(const char *msg, ...) {
     va_list args;
     va_start(args, msg);
-    fprintf(stderr, "error: ");
-    fprintf(stderr, msg, args);
-    putc('\n', stderr);
+    error_msg(msg, args);
     exit(1);
 }
 
@@ -113,6 +112,13 @@ int main(int argc, char **argv) {
     //printf("Expression: ");
     AST_print(ast);
     putchar('\n');
+
+    CNF_Root *cnf_root = CNF_Root_from_AST(ast, &vars);
+    printf("CNF: ");
+    CNF_Root_print(cnf_root);
+    putchar('\n');
+
+    return 0; // TODO: TEMPORARY
 
     const bool first_solution = false;
     DA_Solution solutions = {0};

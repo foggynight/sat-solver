@@ -24,6 +24,16 @@ DA_Var vars_copy(const DA_Var *vars) {
 
 void vars_free(DA_Var *vars) { free(vars->items); }
 
+bool vars_find(const DA_Var *vars, Var targ, size_t *out_index) {
+    for (size_t i = 0; i < vars->count; ++i) {
+        if (strcmp(vars->items[i], targ) == 0) {
+            *out_index = i;
+            return true;
+        }
+    }
+    return false;
+}
+
 static AST *binds_lookup(const DA_Bind *binds, Var var) {
     for (size_t i = 0; i < binds->count; ++i) {
         Bind bind = binds->items[i];
@@ -225,11 +235,11 @@ static bool AST_is_disj_vars_or_negs(const AST *ast) {
 // TODO: There's some cases which this detects as not CNF but might count.
 // e.g. (A B)(A + B)(B + C), (A + B) + (B + C)
 bool AST_is_CNF(const AST *ast) {
-    if (AST_is_var(ast)) { return true; }
+    if (AST_is_var(ast) || AST_is_negvar(ast)) { return true; }
     else if (!AST_is_and(ast)) { return false; }
 
     for (AST_list *walk = ast->children; walk != NULL; walk = walk->next) {
-        if (!AST_is_disj_vars_or_negs(walk->ast)) {
+        if (!AST_is_negvar(walk->ast) && !AST_is_disj_vars_or_negs(walk->ast)) {
             return false;
         }
     }

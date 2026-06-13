@@ -65,6 +65,7 @@ typedef DA(Token) DA_Token;
 
 DA_Var vars_copy(const DA_Var *vars);
 void vars_free(DA_Var *vars);
+bool vars_find(const DA_Var *vars, Var targ, size_t *out_index);
 
 void Bind_print(const Bind *bind);
 
