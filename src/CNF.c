@@ -31,6 +31,14 @@ void CNF_Root_free(CNF_Root *root) {
     free(root);
 }
 
+void CNF_Clause_append_var(CNF_Clause *clause, CNF_Var *var) {
+    DA_APPEND(*clause, *var);
+}
+
+void CNF_Root_append_clause(CNF_Root *root, CNF_Clause *clause) {
+    DA_APPEND(*root, *clause);
+}
+
 static CNF_Var CNF_Var_from_AST(
     const AST *ast,
     const DA_Var *ast_vars,

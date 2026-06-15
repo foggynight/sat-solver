@@ -11,8 +11,9 @@ void error_msg(const char *msg, ...) {
     va_list args;
     va_start(args, msg);
     fprintf(stderr, "error: ");
-    fprintf(stderr, msg, args);
+    vfprintf(stderr, msg, args);
     putc('\n', stderr);
+    va_end(args);
 }
 
 char *string_slice(const char *str, size_t i_start, size_t i_end) {

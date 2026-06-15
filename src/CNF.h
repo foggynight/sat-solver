@@ -31,8 +31,10 @@ DA_CNF_Var *DA_CNF_Var_from_DA_AST_Var(const DA_AST_Var *ast_vars);
 
 CNF_Root *CNF_Root_alloc(void);
 void CNF_Root_free(CNF_Root *root);
-CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars);
+void CNF_Clause_append_var(CNF_Clause *clause, CNF_Var *var);
+void CNF_Root_append_clause(CNF_Root *root, CNF_Clause *clause);
 bool CNF_Root_eval_with_binds(const CNF_Root *root, const CNF_Binds *binds);
+CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars);
 void CNF_Clause_print(const CNF_Clause *clause);
 void CNF_Root_print(const CNF_Root *root);
 
