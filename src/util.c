@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+void newline(void) { putchar('\n'); }
+
 void error_msg(const char *msg, ...) {
     va_list args;
     va_start(args, msg);

@@ -1,5 +1,7 @@
 #include "CNF.h"
 
+#include <assert.h>
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -8,6 +10,15 @@
 #include "AST.h"
 #include "DA.h"
 #include "util.h"
+
+DA_CNF_Var *DA_CNF_Var_from_DA_AST_Var(const DA_AST_Var *ast_vars) {
+    DA_CNF_Var *cnf_vars = calloc(1, sizeof(DA_CNF_Var));
+    assert(cnf_vars);
+    for (size_t i = 0; i < ast_vars->count; ++i) {
+        DA_APPEND(*cnf_vars, i);
+    }
+    return cnf_vars;
+}
 
 CNF_Root *CNF_Root_alloc(void) {
     return calloc(1, sizeof(CNF_Root));
@@ -39,7 +50,7 @@ static CNF_Var CNF_Var_from_AST(
     if (!ast_var_found) { return false; }
 
     if (ast_var_i > INT64_MAX - 1) {
-        error_msg("CNF_from_AST: variable index too large: %ld",
+        error_msg("CNF_from_AST: variable index too large: %" PRId64,
                   ast_var_i);
         exit(1); // TODO: Handle this error better.
     }
@@ -60,6 +71,7 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
         return NULL;
     }
 
+    // Check if AST is a variable or single disjunction.
     if (!AST_is_and(ast)) {
         CNF_Var cnf_var;
         const bool cnf_var_found = CNF_Var_from_AST(ast, ast_vars, &cnf_var);
@@ -70,6 +82,7 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
         return root;
     }
 
+    // AST is a conjunction of disjunctions, CNF.
     for (AST_list *walk_clause = ast->children;
          walk_clause != NULL;
          walk_clause = walk_clause->next)
@@ -111,19 +124,105 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
 //    return NULL;
 }
 
-void CNF_Root_print(CNF_Root *root) {
+bool CNF_Root_eval_with_binds(const CNF_Root *root, const CNF_Binds *binds) {
+    for (size_t i = 0; i < root->count; ++i) {
+        const CNF_Clause clause = root->items[i];
+        printf("Clause[%zu]: ", i);
+        CNF_Clause_print(&clause);
+        bool clause_true = false;
+        for (size_t j = 0; j < clause.count; ++j) {
+            const CNF_Var var = clause.items[j];
+            const bool valid_bound =
+                CNF_Binds_contains_var(binds, var)
+                && CNF_Binds_is_bound(binds, var);
+            assert(valid_bound && "variable out of range or unbound");
+            if (var < 0) {  // negated variable
+                if (CNF_Binds_is_bound_false(binds, imaxabs(var))) {
+                    clause_true = true;
+                    break;
+                }
+            } else if (var > 0) {  // affirmative variable
+                if (CNF_Binds_is_bound_true(binds, imaxabs(var))) {
+                    clause_true = true;
+                    break;
+                }
+            } else {  // zero is invalid variable
+                UNREACHABLE();
+            }
+        }
+        printf(" -> %s\n", clause_true ? "TRUE" : "FALSE");
+        if (!clause_true) { return false; }
+    }
+    return true;
+}
+
+void CNF_Clause_print(const CNF_Clause *clause) {
+    putchar('(');
+    for (size_t j = 0; j < clause->count; ++j) {
+        if (j > 0) { printf(" "); }
+        printf("%" PRId64, clause->items[j]);
+    }
+    putchar(')');
+}
+
+void CNF_Root_print(const CNF_Root *root) {
     if (!root) {
         printf("NULL");
         return;
     }
-
     for (size_t i = 0; i < root->count; ++i) {
         const CNF_Clause clause = root->items[i];
-        putchar('(');
-        for (size_t j = 0; j < clause.count; ++j) {
-            if (j > 0) { printf(" + "); }
-            printf("%ld", clause.items[j]);
-        }
-        putchar(')');
+        CNF_Clause_print(&clause);
     }
+}
+
+CNF_Binds CNF_Binds_make_vars(CNF_Var max_var) {
+    const size_t arr_size = max_var + 1;  // Account for invalid zero variable.
+    CNF_Binds binds;
+    binds.items = calloc(arr_size, sizeof(CNF_Var));
+    assert(binds.items != NULL);
+    binds.count = arr_size;
+    binds.capacity = arr_size;
+    return binds;
+}
+
+bool CNF_Binds_contains_var(const CNF_Binds *binds, CNF_Var var) {
+    return (size_t)imaxabs(var) < binds->count;
+}
+
+bool CNF_Binds_is_bound(const CNF_Binds *binds, CNF_Var var) {
+    return binds->items[var].bound;
+}
+
+bool CNF_Binds_is_bound_to(const CNF_Binds *binds, CNF_Var var, bool val) {
+    //const bool negated = var < 0;
+    //const CNF_Bind bind = binds->items[negated ? -var : var];
+    const CNF_Bind bind = binds->items[var];
+    return bind.bound && bind.val == val;
+}
+
+bool CNF_Binds_is_bound_true(const CNF_Binds *binds, CNF_Var var) {
+    return CNF_Binds_is_bound_to(binds, var, true);
+}
+
+bool CNF_Binds_is_bound_false(const CNF_Binds *binds, CNF_Var var) {
+    return CNF_Binds_is_bound_to(binds, var, false);
+}
+
+void CNF_Bind_print(CNF_Var var, const CNF_Bind *bind) {
+    if (bind->bound) {
+        printf("(%" PRId64 " %d)", var, bind->val);
+    } else {
+        printf("(%" PRId64 " ?)", var);
+    }
+}
+
+void CNF_Binds_print(const CNF_Binds *binds) {
+    puts("[");
+    for (CNF_Var var = 1; (size_t)var < binds->count; ++var) {
+        fputs("  ", stdout);
+        CNF_Bind_print(var, &(binds->items[var]));
+        newline();
+    }
+    putchar(']');
 }

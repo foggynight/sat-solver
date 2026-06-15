@@ -49,20 +49,6 @@ void error(const char *msg, ...) {
     exit(1);
 }
 
-//int main(void) {
-//    AST *ast = AST_make_or();
-//    AST_append(ast, AST_make_var("A"));
-//    AST_print(ast);
-//    putchar('\n');
-//
-//    DA_Bind binds = {0};
-//    DA_APPEND(binds, ((Bind){ "A", true, false }));
-//
-//    AST *result = AST_eval_binds(ast, &binds);
-//    AST_print(result);
-//    putchar('\n');
-//}
-
 int main(int argc, char **argv) {
     Algorithm algorithm = ALGO_DPLL;
     Parser parser = PARS_INFIX;
@@ -106,19 +92,34 @@ int main(int argc, char **argv) {
     for (size_t i = 1; i < vars.count; ++i) {
         printf(" %s", vars.items[i]);
     }
-    putchar('\n');
+    newline();
 
     printf("Initial Expression: ");
     //printf("Expression: ");
     AST_print(ast);
-    putchar('\n');
+    newline();
 
     CNF_Root *cnf_root = CNF_Root_from_AST(ast, &vars);
     printf("CNF: ");
     CNF_Root_print(cnf_root);
-    putchar('\n');
+    newline();
 
-    return 0; // TODO: TEMPORARY
+    CNF_Binds cnf_binds = CNF_Binds_make_vars(vars.count);
+    for (size_t i = 0; i < cnf_binds.count; ++i) {
+        CNF_Bind *cnf_bind = &(cnf_binds.items[i]);
+        cnf_bind->bound = true;
+        cnf_bind->val = true;
+    }
+    cnf_binds.items[1].val = false;
+    cnf_binds.items[2].val = true;
+    printf("Binds: ");
+    CNF_Binds_print(&cnf_binds);
+    newline();
+
+    bool result = CNF_Root_eval_with_binds(cnf_root, &cnf_binds);
+    printf("Result: %d\n", result);
+
+    return 0; // TODO: TEMPORARY -----------------------------------------------
 
     const bool first_solution = false;
     DA_Solution solutions = {0};
@@ -144,7 +145,7 @@ int main(int argc, char **argv) {
         for (size_t j = 0; j < sol.count; ++j) {
             printf(" (%s %d)", sol.items[j].var, sol.items[j].val);
         }
-        putchar('\n');
+        newline();
     }
 
     return 0;

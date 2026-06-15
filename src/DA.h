@@ -21,13 +21,7 @@
         size_t offset;                          \
     }
 
-#define DA_FORWARD_DECLARE(T)                   \
-    struct T {                                  \
-        void *items;                            \
-        size_t count;                           \
-        size_t capacity;                        \
-        size_t offset;                          \
-    }
+typedef DA(bool) DA_bool;
 
 // e.g.
 //   typedef DA(int) DA_int;

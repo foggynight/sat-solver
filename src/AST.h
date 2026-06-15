@@ -11,6 +11,10 @@
 
 #include "DA.h"
 
+// TODO: TEMP
+#define AST_Var Var
+#define DA_AST_Var DA_Var
+
 typedef char * Var;
 
 typedef struct {

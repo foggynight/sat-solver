@@ -17,6 +17,7 @@
     assert(0 && "unreachable");                 \
     __builtin_unreachable();
 
+void newline(void);
 void error_msg(const char *msg, ...);
 
 char *string_slice(const char *str, size_t i_start, size_t i_end);
