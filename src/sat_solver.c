@@ -6,43 +6,37 @@
 #include <string.h>
 
 #include "AST.h"
+#include "CNF.h"
 #include "DA.h"
 #include "util.h"
 
 // Search for SAT solution given AST of expression and array of variables. Uses
 // brute force by simply walking through each possible set of bindings linearly.
-const char *solve_brute_force(
-    const AST *ast,
-    const DA_Var *vars,
+bool solve_brute_force(
+    const CNF_Root *cnf_root,
+    CNF_Var max_var,
     bool first_solution,
-    DA_Solution *solutions)
+    DA_Solution *out_solutions)
 {
-    if (!AST_is_CNF(ast)) { return "AST not in CNF"; }
-
-    DA_Bind binds = binds_zero(vars);
-
-    printf("Final Expression:   ");
-    AST_print(ast);
-    putchar('\n');
+    CNF_Binds cnf_binds = CNF_Binds_make_zeros(max_var);
     printf("Checking Binds:\n");
-
-    for (size_t i = 0; i < (1u << vars->count); ++i) {
+    for (size_t i = 0; i < (1u << max_var); ++i) {
         printf("  %ld: ", i);
-        binds_print(&binds);
-        putchar('\n');
-        AST *result_ast = AST_eval_binds(ast, &binds);
-        const bool result = AST_to_bool(result_ast);
-        AST_free(result_ast);
+        CNF_Binds_print(&cnf_binds);
+        const bool result = CNF_Root_eval_with_binds(cnf_root, &cnf_binds);
+        printf(" -> %c\n", result ? 'T' : 'F');
         if (result) {
-            const DA_Bind solution = binds_copy(&binds);
-            DA_APPEND(*solutions, solution);
+            const Solution solution = CNF_Binds_copy(&cnf_binds);
+            DA_APPEND(*out_solutions, solution);
             if (first_solution) { break; }
         }
-        binds_inc(&binds);
+        if (!CNF_Binds_inc(&cnf_binds)) {
+            error_msg("solve_brute_force: failed to increment binds");
+            return false;  // TODO: Signal error some other way.
+        }
     }
-
-    binds_free(&binds);
-    return NULL;
+    CNF_Binds_free(&cnf_binds);
+    return out_solutions->count > 0;
 }
 
 // TODO
@@ -202,6 +196,7 @@ const char *solve_DPLL(
     bool first_solution,
     DA_Solution *solutions)
 {
+    return solutions == NULL ? NULL : NULL;
     if (!AST_is_CNF(ast_original)) { return "AST not in CNF"; }
 
     DA_Var vars = vars_copy(vars_original);
@@ -221,8 +216,8 @@ const char *solve_DPLL(
         const bool result = AST_to_bool(result_ast);
         AST_free(result_ast);
         if (result) {
-            const Solution solution = binds_copy(&binds);
-            DA_APPEND(*solutions, solution);
+            //const Solution solution = binds_copy(&binds);
+            //DA_APPEND(*solutions, solution);
             if (first_solution) { break; }
         }
         if (binds_inc(&binds)) { break; }

@@ -79,8 +79,7 @@ int main(int argc, char **argv) {
     AST *ast = NULL;
 
     CNF_Root *cnf_root = NULL;
-
-    CNF_Var var_count = 0;
+    CNF_Var max_var = 0;
 
     if (parser == PARSER_INFIX) {
         AST *ast = parse_expr_infix(stdin, &vars);
@@ -93,19 +92,18 @@ int main(int argc, char **argv) {
         }
         newline();
 
-        printf("Initial Expression: ");
-        //printf("Expression: ");
+        printf("Expression: ");
         AST_print(ast);
         newline();
 
         cnf_root = CNF_Root_from_AST(ast, &vars);
         if (!cnf_root) { error("failed to convert AST to CNF structure"); }
 
-        var_count = vars.count;
+        max_var = vars.count;
     }
 
     else if (parser == PARSER_DIMACS) {
-        cnf_root = parse_DIMACS_file(stdin, &var_count);
+        cnf_root = parse_DIMACS_file(stdin, &max_var);
         if (!cnf_root) { error("failed to parse DIMACS file"); }
     }
 
@@ -113,46 +111,32 @@ int main(int argc, char **argv) {
     CNF_Root_print(cnf_root);
     newline();
 
-    CNF_Binds cnf_binds = CNF_Binds_make_vars(var_count);
-    for (size_t i = 0; i < cnf_binds.count; ++i) {
-        CNF_Bind *cnf_bind = &(cnf_binds.items[i]);
-        cnf_bind->bound = true;
-        cnf_bind->val = true;
-    }
-    cnf_binds.items[1].val = false;
-    cnf_binds.items[2].val = true;
-    cnf_binds.items[3].val = true;
-    printf("Binds: ");
-    CNF_Binds_print(&cnf_binds);
-    newline();
-
-    bool result = CNF_Root_eval_with_binds(cnf_root, &cnf_binds);
-    printf("Result: %d\n", result);
-
-    return 0; // TODO: TEMPORARY -----------------------------------------------
-
     const bool first_solution = false;
     DA_Solution solutions = {0};
+    bool satisfiable;
+
     const char *err_msg = NULL;
     switch (algorithm) {
-    case ALGORITHM_BRUTE: err_msg = solve_brute_force(ast, &vars, first_solution, &solutions); break;
+    case ALGORITHM_BRUTE: satisfiable = solve_brute_force(cnf_root, max_var, first_solution, &solutions); break;
     case ALGORITHM_DPLL: err_msg = solve_DPLL(ast, &vars, first_solution, &solutions); break;
-    default: assert(0 && "unreachable"); __builtin_unreachable();
+    default: UNREACHABLE();
     }
-
     if (err_msg != NULL) { error(err_msg); }
 
-    AST_free(ast);
-    vars_free(&vars);
+    if (ast) { AST_free(ast); }
+    if (vars.count > 0) { vars_free(&vars); }
 
-    printf("Found Solutions:\n");
-    for (size_t i = 0; i < solutions.count; ++i) {
-        DA_Bind sol = solutions.items[i];
-        printf("  %ld:", i);
-        for (size_t j = 0; j < sol.count; ++j) {
-            printf(" (%s %d)", sol.items[j].var, sol.items[j].val);
+    if (satisfiable) {
+        puts("SATISFIABLE");
+        printf("Found Solutions:\n");
+        for (size_t i = 0; i < solutions.count; ++i) {
+            Solution sol = solutions.items[i];
+            printf("  %ld: ", i);
+            CNF_Binds_print((CNF_Binds*)&sol);
+            newline();
         }
-        newline();
+    } else {
+        puts("UNSATISFIABLE");
     }
 
     return 0;

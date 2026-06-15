@@ -135,8 +135,6 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
 bool CNF_Root_eval_with_binds(const CNF_Root *root, const CNF_Binds *binds) {
     for (size_t i = 0; i < root->count; ++i) {
         const CNF_Clause clause = root->items[i];
-        printf("Clause[%zu]: ", i);
-        CNF_Clause_print(&clause);
         bool clause_true = false;
         for (size_t j = 0; j < clause.count; ++j) {
             const CNF_Var var = clause.items[j];
@@ -158,7 +156,6 @@ bool CNF_Root_eval_with_binds(const CNF_Root *root, const CNF_Binds *binds) {
                 UNREACHABLE();
             }
         }
-        printf(" -> %s\n", clause_true ? "TRUE" : "FALSE");
         if (!clause_true) { return false; }
     }
     return true;
@@ -187,11 +184,47 @@ void CNF_Root_print(const CNF_Root *root) {
 CNF_Binds CNF_Binds_make_vars(CNF_Var max_var) {
     const size_t arr_size = max_var + 1;  // Account for invalid zero variable.
     CNF_Binds binds;
-    binds.items = calloc(arr_size, sizeof(CNF_Var));
+    binds.items = calloc(arr_size, sizeof(CNF_Bind));
     assert(binds.items != NULL);
     binds.count = arr_size;
     binds.capacity = arr_size;
     return binds;
+}
+
+CNF_Binds CNF_Binds_make_zeros(CNF_Var max_var) {
+    CNF_Binds binds = CNF_Binds_make_vars(max_var);
+    for (size_t i = 0; i < binds.count; ++i) {
+        binds.items[i].bound = true;
+    }
+    return binds;
+}
+
+CNF_Binds CNF_Binds_copy(const CNF_Binds *binds) {
+    const size_t items_size = binds->count * sizeof(*(binds->items));
+    CNF_Binds copy = *binds;
+    copy.items = malloc(items_size);
+    assert(copy.items != NULL);
+    memcpy(copy.items, binds->items, items_size);
+    return copy;
+}
+
+// NOTE: Assumes all variables are bound, such as when binds object created by
+//       calling `CNF_Binds_make_zeros`.
+bool CNF_Binds_inc(CNF_Binds *binds) {
+    bool carry = true;
+    for (size_t i = 1; i <= binds->count; ++i) {
+        if (binds->items[i].pure == true) { continue; }
+        const bool next_val = (binds->items[i].val != carry);
+        carry = (binds->items[i].val && carry);
+        binds->items[i].val = next_val;
+        if (!carry) { break; }
+    }
+    return !carry;  // carry == true => overflow
+}
+
+void CNF_Binds_free(CNF_Binds *binds) {
+    assert(binds != NULL);
+    free(binds->items);
 }
 
 bool CNF_Binds_contains_var(const CNF_Binds *binds, CNF_Var var) {
@@ -217,20 +250,20 @@ bool CNF_Binds_is_bound_false(const CNF_Binds *binds, CNF_Var var) {
     return CNF_Binds_is_bound_to(binds, var, false);
 }
 
+// TODO: pure info
 void CNF_Bind_print(CNF_Var var, const CNF_Bind *bind) {
     if (bind->bound) {
-        printf("(%" PRId64 " %d)", var, bind->val);
+        printf("(%" PRId64 " %c)", var, bind->val ? 'T' : 'F');
     } else {
         printf("(%" PRId64 " ?)", var);
     }
 }
 
 void CNF_Binds_print(const CNF_Binds *binds) {
-    puts("[");
+    putchar('[');
     for (CNF_Var var = 1; (size_t)var < binds->count; ++var) {
-        fputs("  ", stdout);
+        if (var > 1) { fputs(", ", stdout); }
         CNF_Bind_print(var, &(binds->items[var]));
-        newline();
     }
     putchar(']');
 }

@@ -10,16 +10,21 @@
 #define SAT_SOLVER_H
 
 #include "AST.h"
+#include "CNF.h"
 #include "DA.h"
 
-typedef DA_Bind Solution;
+//typedef struct {
+//    CNF_Var var;
+//    CNF_Binds bind;
+//} Solution;
+typedef CNF_Binds Solution;
 typedef DA(Solution) DA_Solution;
 
-const char *solve_brute_force(
-    const AST *ast,
-    const DA_Var *vars,
+bool solve_brute_force(
+    const CNF_Root *cnf_root,
+    CNF_Var max_var,
     bool first_solution,
-    DA_Solution *solutions);
+    DA_Solution *out_solutions);
 
 const char *solve_DPLL(
     const AST *ast_original,

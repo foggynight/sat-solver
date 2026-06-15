@@ -21,8 +21,9 @@ typedef DA(CNF_Clause) CNF_Root;
 
 typedef struct {
     //CNF_Var var;
-    bool bound;
     bool val;
+    bool bound;
+    bool pure;
 } CNF_Bind;
 
 typedef DA(CNF_Bind) CNF_Binds;
@@ -40,6 +41,10 @@ void CNF_Root_print(const CNF_Root *root);
 
 // TODO: Should these functions handle negated variable or the caller?
 CNF_Binds CNF_Binds_make_vars(CNF_Var max_var);
+CNF_Binds CNF_Binds_make_zeros(CNF_Var max_var);
+CNF_Binds CNF_Binds_copy(const CNF_Binds *binds);
+bool CNF_Binds_inc(CNF_Binds *binds);
+void CNF_Binds_free(CNF_Binds *binds);
 bool CNF_Binds_contains_var(const CNF_Binds *binds, CNF_Var var);
 bool CNF_Binds_is_bound(const CNF_Binds *binds, CNF_Var var);
 bool CNF_Binds_is_bound_to(const CNF_Binds *binds, CNF_Var var, bool val);
