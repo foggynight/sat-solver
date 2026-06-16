@@ -26,10 +26,10 @@ bool solve_brute_force(
     bool first_solution,
     DA_Solution *out_solutions);
 
-const char *solve_DPLL(
-    const AST *ast_original,
-    const DA_Var *vars_original,
+bool solve_DPLL(
+    const CNF_Root *cnf_root,
+    const CNF_Var max_var,
     bool first_solution,
-    DA_Solution *solutions);
+    DA_Solution *out_solutions);
 
 #endif // SAT_SOLVER_H

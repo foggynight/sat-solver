@@ -45,19 +45,19 @@ static bool parse_DIMACS_clause(
 {
     CNF_Clause clause = {0};
     while (true) {
-        char *var_end;
-        CNF_Var var = strtoimax(line, &var_end, 0);
-        if (line == var_end) {
-            error_msg("failed to parse variable here: %s", line);
+        char *lit_end;
+        CNF_Lit lit = strtoimax(line, &lit_end, 0);
+        if (line == lit_end) {
+            error_msg("failed to parse literal here: %s", line);
             return false;
         }
-        if (var > cnt_vars) {
-            error_msg("variable out of range specified in header", line);
+        if (lit > cnt_vars) {
+            error_msg("variable index out of range specified in header", line);
             return false;
         }
-        line = var_end;
-        if (var == 0) { break; }
-        CNF_Clause_append_var(&clause, &var);
+        line = lit_end;
+        if (lit == 0) { break; }
+        CNF_Clause_append_lit(&clause, &lit);
     }
     *out_clause = clause;
     return true;

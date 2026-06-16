@@ -71,17 +71,16 @@ int main(int argc, char **argv) {
         }
     }
     if (algorithm == ALGORITHM_NONE) { error("missing algorithm option"); }
-    if (parser == PARSER_NONE)    { error("missing parser option"); }
+    if (parser == PARSER_NONE)       { error("missing parser option"); }
     printf("Parser: %s\n", (parser == PARSER_INFIX) ? "infix" : "DIMACS");
     printf("Algorithm: %s\n", (algorithm == ALGORITHM_BRUTE) ? "brute" : "DPLL");
 
-    DA_Var vars = {0};
-    AST *ast = NULL;
 
     CNF_Root *cnf_root = NULL;
     CNF_Var max_var = 0;
 
     if (parser == PARSER_INFIX) {
+        DA_Var vars = {0};
         AST *ast = parse_expr_infix(stdin, &vars);
         if (!ast) { error("failed to parse expression into AST"); }
 
@@ -100,6 +99,9 @@ int main(int argc, char **argv) {
         if (!cnf_root) { error("failed to convert AST to CNF structure"); }
 
         max_var = vars.count;
+
+        AST_free(ast);
+        if (vars.count > 0) { vars_free(&vars); }
     }
 
     else if (parser == PARSER_DIMACS) {
@@ -115,19 +117,13 @@ int main(int argc, char **argv) {
     DA_Solution solutions = {0};
     bool satisfiable;
 
-    const char *err_msg = NULL;
     switch (algorithm) {
     case ALGORITHM_BRUTE: satisfiable = solve_brute_force(cnf_root, max_var, first_solution, &solutions); break;
-    case ALGORITHM_DPLL: err_msg = solve_DPLL(ast, &vars, first_solution, &solutions); break;
+    case ALGORITHM_DPLL: satisfiable = solve_DPLL(cnf_root, max_var, first_solution, &solutions); break;
     default: UNREACHABLE();
     }
-    if (err_msg != NULL) { error(err_msg); }
-
-    if (ast) { AST_free(ast); }
-    if (vars.count > 0) { vars_free(&vars); }
 
     if (satisfiable) {
-        puts("SATISFIABLE");
         printf("Found Solutions:\n");
         for (size_t i = 0; i < solutions.count; ++i) {
             Solution sol = solutions.items[i];
@@ -135,6 +131,7 @@ int main(int argc, char **argv) {
             CNF_Binds_print((CNF_Binds*)&sol);
             newline();
         }
+        puts("SATISFIABLE");
     } else {
         puts("UNSATISFIABLE");
     }

@@ -14,29 +14,53 @@
 #include "AST.h"
 #include "DA.h"
 
+// Variable represents only variable, not polarity.
 typedef int64_t CNF_Var;
 typedef DA(CNF_Var) DA_CNF_Var;
-typedef DA_CNF_Var CNF_Clause;
+
+// Literal represents variable and polarity.
+typedef CNF_Var CNF_Lit;
+typedef DA(CNF_Lit) DA_CNF_Lit;
+
+typedef DA_CNF_Lit CNF_Clause;  // TODO: Convert to struct containing vars and deleted flag.
 typedef DA(CNF_Clause) CNF_Root;
 
 typedef struct {
-    //CNF_Var var;
     bool val;
     bool bound;
     bool pure;
 } CNF_Bind;
+typedef DA(CNF_Bind) DA_CNF_Bind;
+typedef DA_CNF_Bind CNF_Binds;
 
-typedef DA(CNF_Bind) CNF_Binds;
+typedef struct {
+    CNF_Lit literal;
+    size_t decision_level;
+    CNF_Clause *reason;
+} CNF_Trail;
+typedef DA(CNF_Trail) DA_CNF_Trail;
 
-DA_CNF_Var *DA_CNF_Var_from_DA_AST_Var(const DA_AST_Var *ast_vars);
+typedef struct {
+    CNF_Binds binds;
+    DA_CNF_Trail trail;
+} CNF_State;
+typedef DA(CNF_State) DA_CNF_State;
+
+//DA_CNF_Var *DA_CNF_Var_from_DA_AST_Var(const DA_AST_Var *ast_vars);
+
+size_t CNF_Clause_len(const CNF_Clause *clause);
+bool CNF_Clause_contains_var(const CNF_Clause *clause, CNF_Var var);
+CNF_Lit CNF_Clause_index_lits(const CNF_Clause *clause, size_t index);
+void CNF_Clause_append_lit(CNF_Clause *clause, CNF_Lit *lit);
+void CNF_Clause_print(const CNF_Clause *clause);
 
 CNF_Root *CNF_Root_alloc(void);
 void CNF_Root_free(CNF_Root *root);
-void CNF_Clause_append_var(CNF_Clause *clause, CNF_Var *var);
+size_t CNF_Root_len(const CNF_Root *root);
+CNF_Clause CNF_Root_index_clauses(const CNF_Root *root, size_t index);
 void CNF_Root_append_clause(CNF_Root *root, CNF_Clause *clause);
 bool CNF_Root_eval_with_binds(const CNF_Root *root, const CNF_Binds *binds);
 CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars);
-void CNF_Clause_print(const CNF_Clause *clause);
 void CNF_Root_print(const CNF_Root *root);
 
 // TODO: Should these functions handle negated variable or the caller?
@@ -52,5 +76,7 @@ bool CNF_Binds_is_bound_true(const CNF_Binds *binds, CNF_Var var);
 bool CNF_Binds_is_bound_false(const CNF_Binds *binds, CNF_Var var);
 void CNF_Bind_print(CNF_Var var, const CNF_Bind *bind);
 void CNF_Binds_print(const CNF_Binds *binds);
+
+void CNF_State_free(CNF_State *state);
 
 #endif // CNF_H

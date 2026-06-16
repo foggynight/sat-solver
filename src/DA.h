@@ -2,6 +2,9 @@
 //
 //  DA - Dynamic Array
 //
+//  DA types also contain an offset member, which is used as either the stack
+//  pointer or the queue offset the stack/queue macros.
+//
 //  Copyright (C) 2026 Robert Coffey
 //
 ////////////////////////////////////////////////////////////////////////////////
@@ -9,8 +12,9 @@
 #ifndef DA_H
 #define DA_H
 
+#include <assert.h>
 #include <stdlib.h>
-#include <string.h> // TODO: Hmm...
+#include <string.h>
 
 // e.g. typedef DA(T) DA_T;
 #define DA(T)                                   \
@@ -29,21 +33,29 @@ typedef DA(bool) DA_bool;
 //   DA_APPEND(ns, 1);
 //   DA_APPEND(ns, 2);
 //   DA_APPEND(ns, 3);
-#define DA_APPEND(xs, x)                                                             \
-    do {                                                                             \
-        if ((xs).count >= (xs).capacity) {                                           \
-            if ((xs).capacity == 0) (xs).capacity = 64;                              \
-            else                    (xs).capacity *= 2;                              \
+#define DA_APPEND(xs, x)                                                \
+    do {                                                                \
+        if ((xs).count >= (xs).capacity) {                              \
+            if ((xs).capacity == 0) (xs).capacity = 64;                 \
+            else                    (xs).capacity *= 2;                 \
             (xs).items = realloc((xs).items, (xs).capacity * sizeof(*((xs).items))); \
-            if (!(xs).items) DA_error("failed to realloc items");                    \
-        }                                                                            \
-        (xs).items[(xs).count++] = (x);                                              \
+            assert((xs).items != NULL);                                 \
+        }                                                               \
+        (xs).items[(xs).count++] = (x);                                 \
     } while (0)
 
+// Stack Macros
+#define DA_TOP(xs) ((xs)[(xs).offset])
+#define DA_PUSH(xs, x) ((xs)[((xs).offset)++] = x)
+#define DA_POP(xs) ((xs)[((xs).offset)--])
+// ---
+
+// Queue Macros
 #define DA_INDEX(xs, i) (xs)[(i) + (xs).offset]
 #define DA_NEXT(xs) (xs).items[(xs).offset]
 #define DA_DEQUE(xs) do { (xs).offset += 1; } while (0)
 #define DA_REQUE(xs) do { (xs).offset -= 1; } while (0)
+// ---
 
 #define DA_CONTAINS_STR(xs, x, p)                               \
     do {                                                        \
@@ -54,7 +66,5 @@ typedef DA(bool) DA_bool;
             }                                                   \
         }                                                       \
     } while (0)
-
-void DA_error(const char *error_msg);
 
 #endif // DA_H

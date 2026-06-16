@@ -11,13 +11,34 @@
 #include "DA.h"
 #include "util.h"
 
-DA_CNF_Var *DA_CNF_Var_from_DA_AST_Var(const DA_AST_Var *ast_vars) {
-    DA_CNF_Var *cnf_vars = calloc(1, sizeof(DA_CNF_Var));
-    assert(cnf_vars);
-    for (size_t i = 0; i < ast_vars->count; ++i) {
-        DA_APPEND(*cnf_vars, i);
+size_t CNF_Clause_len(const CNF_Clause *clause) {
+    assert(clause);
+    return clause->count;
+}
+
+bool CNF_Clause_contains_var(const CNF_Clause *clause, CNF_Var var) {
+    assert(clause);
+    assert(var >= 0);
+    return (size_t)var < clause->count;
+}
+
+CNF_Lit CNF_Clause_index_lits(const CNF_Clause *clause, size_t index) {
+    assert(clause);
+    assert(index < clause->count);
+    return clause->items[index];
+}
+
+void CNF_Clause_print(const CNF_Clause *clause) {
+    putchar('(');
+    for (size_t j = 0; j < clause->count; ++j) {
+        if (j > 0) { printf(" "); }
+        printf("%" PRId64, clause->items[j]);
     }
-    return cnf_vars;
+    putchar(')');
+}
+
+void CNF_Clause_append_lit(CNF_Clause *clause, CNF_Lit *lit) {
+    DA_APPEND(*clause, *lit);
 }
 
 CNF_Root *CNF_Root_alloc(void) {
@@ -31,12 +52,49 @@ void CNF_Root_free(CNF_Root *root) {
     free(root);
 }
 
-void CNF_Clause_append_var(CNF_Clause *clause, CNF_Var *var) {
-    DA_APPEND(*clause, *var);
+size_t CNF_Root_len(const CNF_Root *root) {
+    assert(root);
+    return root->count;
+}
+
+CNF_Clause CNF_Root_index_clauses(const CNF_Root *root, size_t index) {
+    assert(root);
+    return root->items[index];
 }
 
 void CNF_Root_append_clause(CNF_Root *root, CNF_Clause *clause) {
+    assert(root);
     DA_APPEND(*root, *clause);
+}
+
+bool CNF_Root_eval_with_binds(const CNF_Root *root, const CNF_Binds *binds) {
+    for (size_t i = 0; i < root->count; ++i) {
+        const CNF_Clause clause = root->items[i];
+        bool clause_true = false;
+        for (size_t j = 0; j < clause.count; ++j) {
+            const CNF_Lit lit = clause.items[j];
+            const CNF_Var var = imaxabs(lit);
+            const bool valid_bound =
+                CNF_Binds_contains_var(binds, var)
+                && CNF_Binds_is_bound(binds, var);
+            assert(valid_bound && "variable out of range or unbound");
+            if (var < 0) {  // negated variable
+                if (CNF_Binds_is_bound_false(binds, var)) {
+                    clause_true = true;
+                    break;
+                }
+            } else if (var > 0) {  // affirmative variable
+                if (CNF_Binds_is_bound_true(binds, var)) {
+                    clause_true = true;
+                    break;
+                }
+            } else {  // zero is invalid variable
+                UNREACHABLE();
+            }
+        }
+        if (!clause_true) { return false; }
+    }
+    return true;
 }
 
 static CNF_Var CNF_Var_from_AST(
@@ -85,7 +143,7 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
         const bool cnf_var_found = CNF_Var_from_AST(ast, ast_vars, &cnf_var);
         assert(cnf_var_found);
         CNF_Clause clause = {0};
-        DA_APPEND(clause, cnf_var);
+        DA_APPEND(clause, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
         DA_APPEND(*root, clause);
         return root;
     }
@@ -104,7 +162,7 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
                 walk_ast, ast_vars, &cnf_var);
             assert(cnf_var_found);
             CNF_Clause clause = {0};
-            DA_APPEND(clause, cnf_var);
+            DA_APPEND(clause, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
             DA_APPEND(*root, clause);
         }
 
@@ -118,7 +176,7 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
                 const bool cnf_var_found = CNF_Var_from_AST(
                     walk_var->ast, ast_vars, &cnf_var);
                 assert(cnf_var_found);
-                DA_APPEND(clause, cnf_var);
+                DA_APPEND(clause, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
             }
             DA_APPEND(*root, clause);
         }
@@ -130,44 +188,6 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
 //fail:
 //    CNF_Root_free(root);
 //    return NULL;
-}
-
-bool CNF_Root_eval_with_binds(const CNF_Root *root, const CNF_Binds *binds) {
-    for (size_t i = 0; i < root->count; ++i) {
-        const CNF_Clause clause = root->items[i];
-        bool clause_true = false;
-        for (size_t j = 0; j < clause.count; ++j) {
-            const CNF_Var var = clause.items[j];
-            const bool valid_bound =
-                CNF_Binds_contains_var(binds, var)
-                && CNF_Binds_is_bound(binds, var);
-            assert(valid_bound && "variable out of range or unbound");
-            if (var < 0) {  // negated variable
-                if (CNF_Binds_is_bound_false(binds, imaxabs(var))) {
-                    clause_true = true;
-                    break;
-                }
-            } else if (var > 0) {  // affirmative variable
-                if (CNF_Binds_is_bound_true(binds, imaxabs(var))) {
-                    clause_true = true;
-                    break;
-                }
-            } else {  // zero is invalid variable
-                UNREACHABLE();
-            }
-        }
-        if (!clause_true) { return false; }
-    }
-    return true;
-}
-
-void CNF_Clause_print(const CNF_Clause *clause) {
-    putchar('(');
-    for (size_t j = 0; j < clause->count; ++j) {
-        if (j > 0) { printf(" "); }
-        printf("%" PRId64, clause->items[j]);
-    }
-    putchar(')');
 }
 
 void CNF_Root_print(const CNF_Root *root) {
@@ -266,4 +286,9 @@ void CNF_Binds_print(const CNF_Binds *binds) {
         CNF_Bind_print(var, &(binds->items[var]));
     }
     putchar(']');
+}
+
+void CNF_State_free(CNF_State *state) {
+    assert(state != NULL);
+    free(state->binds.items);
 }
