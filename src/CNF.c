@@ -78,12 +78,12 @@ bool CNF_Root_eval_with_binds(const CNF_Root *root, const CNF_Binds *binds) {
                 CNF_Binds_contains_var(binds, var)
                 && CNF_Binds_is_bound(binds, var);
             assert(valid_bound && "variable out of range or unbound");
-            if (var < 0) {  // negated variable
+            if (lit < 0) {  // negated variable
                 if (CNF_Binds_is_bound_false(binds, var)) {
                     clause_true = true;
                     break;
                 }
-            } else if (var > 0) {  // affirmative variable
+            } else if (lit > 0) {  // affirmative variable
                 if (CNF_Binds_is_bound_true(binds, var)) {
                     clause_true = true;
                     break;

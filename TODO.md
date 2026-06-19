@@ -1,3 +1,5 @@
+# GOALS
+
 - [x] add brute force search for solving
 - [x] add DIMACS CNF parser
 - [x] parser_infix: replace chained binary ops to list of operands
@@ -5,4 +7,9 @@
 - [x] add CNF type for representing only expressions in CNF
 - [x] add conversion from AST to CNF, opposite not necessary for now
 - [ ] add DPLL algorithm for solving (WIP)
-- [ ] add option to output solution in DIMACS CNF
+
+
+# BUGS
+
+- [x] negative literal error
+- [ ] "-A" fails to parse as AST
