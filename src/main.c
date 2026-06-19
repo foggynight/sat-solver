@@ -119,11 +119,10 @@ int main(int argc, char **argv) {
 
     switch (algorithm) {
     case ALGORITHM_BRUTE: satisfiable = solve_brute_force(cnf_root, max_var, first_solution, &solutions); break;
-    case ALGORITHM_DPLL: satisfiable = solve_DPLL(cnf_root, max_var, first_solution, &solutions); break;
+    case ALGORITHM_DPLL:  satisfiable = solve_DPLL(cnf_root, max_var, first_solution, &solutions); break;
     default: UNREACHABLE();
     }
 
-    // TODO: Sort solutions before printing so different algos have same order.
     if (satisfiable) {
         printf("Found Solutions:\n");
         for (size_t i = 0; i < solutions.count; ++i) {

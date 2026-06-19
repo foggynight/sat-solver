@@ -24,7 +24,7 @@ bool solve_brute_force(
 {
     CNF_Binds cnf_binds = CNF_Binds_make_zeros(max_var);
     printf("Checking Binds:\n");
-    for (size_t i = 0; i < (1u << max_var); ++i) {
+    for (size_t i = 0; true; ++i) {
         printf("  %ld: ", i);
         CNF_Binds_print(&cnf_binds);
         const bool result = CNF_Root_eval_with_binds(cnf_root, &cnf_binds);
@@ -34,10 +34,7 @@ bool solve_brute_force(
             DA_APPEND(*out_solutions, solution);
             if (first_solution) { break; }
         }
-        if (!CNF_Binds_inc(&cnf_binds)) {
-            error_msg("solve_brute_force: failed to increment binds");
-            return false;  // TODO: Signal error some other way.
-        }
+        if (!CNF_Binds_inc(&cnf_binds)) { break; }
     }
     CNF_Binds_free(&cnf_binds);
     return out_solutions->count > 0;
@@ -182,7 +179,7 @@ static bool DPLL(DPLL_State *state) {
     // If all variables are assigned then evaluate, otherwise split.
     if (state->history.count == (size_t)state->max_var) {
         DPLL_update_binds_from_history(&(state->history), &(state->binds));
-        printf("  %d: ", eval_count++);
+        printf("  %zu: ", eval_count++);
         CNF_Binds_print(&(state->binds));
         printf(" -> ");
         const bool result =

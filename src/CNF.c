@@ -230,9 +230,10 @@ CNF_Binds CNF_Binds_copy(const CNF_Binds *binds) {
 
 // NOTE: Assumes all variables are bound, such as when binds object created by
 //       calling `CNF_Binds_make_zeros`.
+// Increment bindings in big-endian order. e.g. ABC: 010 -> 011 -> 100
 bool CNF_Binds_inc(CNF_Binds *binds) {
     bool carry = true;
-    for (size_t i = 1; i <= binds->count; ++i) {
+    for (size_t i = binds->count - 1; i > 0; --i) {
         if (binds->items[i].pure == true) { continue; }
         const bool next_val = (binds->items[i].val != carry);
         carry = (binds->items[i].val && carry);
