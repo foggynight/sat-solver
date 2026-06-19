@@ -2,8 +2,9 @@
 //
 //  DA - Dynamic Array
 //
-//  DA types also contain an offset member, which is used as either the stack
-//  pointer or the queue offset the stack/queue macros.
+//  TODO: Remove offset in general DA, move to queue subtype.
+//  DA types also contain an offset member, which is used as the queue offset in
+//  the queue macros.
 //
 //  Copyright (C) 2026 Robert Coffey
 //
@@ -44,14 +45,16 @@ typedef DA(bool) DA_bool;
         (xs).items[(xs).count++] = (x);                                 \
     } while (0)
 
+#define DA_FREE(xs) do { if ((xs).items != NULL) { free((xs).items); } } while (0)
+
 // Stack Macros
-#define DA_TOP(xs) ((xs)[(xs).offset])
-#define DA_PUSH(xs, x) ((xs)[((xs).offset)++] = x)
-#define DA_POP(xs) ((xs)[((xs).offset)--])
+#define DA_PUSH(xs, x) do { DA_APPEND((xs), x); } while (0)
+#define DA_POP(xs) ((xs).items[--((xs).count)])
+#define DA_TOP(xs) ((xs).items[(xs).count - 1])
 // ---
 
 // Queue Macros
-#define DA_INDEX(xs, i) (xs)[(i) + (xs).offset]
+#define DA_INDEX(xs, i) (xs).items[(i) + (xs).offset]
 #define DA_NEXT(xs) (xs).items[(xs).offset]
 #define DA_DEQUE(xs) do { (xs).offset += 1; } while (0)
 #define DA_REQUE(xs) do { (xs).offset -= 1; } while (0)

@@ -123,6 +123,7 @@ int main(int argc, char **argv) {
     default: UNREACHABLE();
     }
 
+    // TODO: Sort solutions before printing so different algos have same order.
     if (satisfiable) {
         printf("Found Solutions:\n");
         for (size_t i = 0; i < solutions.count; ++i) {

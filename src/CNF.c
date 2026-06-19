@@ -287,8 +287,3 @@ void CNF_Binds_print(const CNF_Binds *binds) {
     }
     putchar(']');
 }
-
-void CNF_State_free(CNF_State *state) {
-    assert(state != NULL);
-    free(state->binds.items);
-}

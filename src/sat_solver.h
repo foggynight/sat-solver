@@ -28,7 +28,7 @@ bool solve_brute_force(
 
 bool solve_DPLL(
     const CNF_Root *cnf_root,
-    const CNF_Var max_var,
+    CNF_Var max_var,
     bool first_solution,
     DA_Solution *out_solutions);
 
