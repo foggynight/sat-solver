@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
     }
 
     if (satisfiable) {
-        printf("Found Solutions:\n");
+        printf("Solutions:\n");
         for (size_t i = 0; i < solutions.count; ++i) {
             Solution sol = solutions.items[i];
             printf("  %ld: ", i);

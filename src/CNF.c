@@ -13,32 +13,36 @@
 
 size_t CNF_Clause_len(const CNF_Clause *clause) {
     assert(clause);
-    return clause->count;
-}
-
-bool CNF_Clause_contains_var(const CNF_Clause *clause, CNF_Var var) {
-    assert(clause);
-    assert(var >= 0);
-    return (size_t)var < clause->count;
+    return clause->lits.count;
 }
 
 CNF_Lit CNF_Clause_index_lits(const CNF_Clause *clause, size_t index) {
     assert(clause);
-    assert(index < clause->count);
-    return clause->items[index];
+    assert(index < clause->lits.count);
+    return clause->lits.items[index];
+}
+
+bool CNF_Clause_contains_lit(const CNF_Clause *clause, CNF_Lit lit) {
+    assert(clause);
+    for (size_t i = 0; i < clause->lits.count; ++i) {
+        if (lit == clause->lits.items[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void CNF_Clause_append_lit(CNF_Clause *clause, CNF_Lit *lit) {
+    DA_APPEND(clause->lits, *lit);
 }
 
 void CNF_Clause_print(const CNF_Clause *clause) {
     putchar('(');
-    for (size_t j = 0; j < clause->count; ++j) {
+    for (size_t j = 0; j < clause->lits.count; ++j) {
         if (j > 0) { printf(" "); }
-        printf("%" PRId64, clause->items[j]);
+        printf("%" PRId64, clause->lits.items[j]);
     }
     putchar(')');
-}
-
-void CNF_Clause_append_lit(CNF_Clause *clause, CNF_Lit *lit) {
-    DA_APPEND(*clause, *lit);
 }
 
 CNF_Root *CNF_Root_alloc(void) {
@@ -47,7 +51,7 @@ CNF_Root *CNF_Root_alloc(void) {
 
 void CNF_Root_free(CNF_Root *root) {
     for (size_t i = 0; i < root->count; ++i) {
-        free(root->items[i].items);
+        free(root->items[i].lits.items);
     }
     free(root);
 }
@@ -57,9 +61,10 @@ size_t CNF_Root_len(const CNF_Root *root) {
     return root->count;
 }
 
-CNF_Clause CNF_Root_index_clauses(const CNF_Root *root, size_t index) {
+CNF_Clause *CNF_Root_index_clauses(const CNF_Root *root, size_t index) {
     assert(root);
-    return root->items[index];
+    assert(index < root->count);
+    return &(root->items[index]);
 }
 
 void CNF_Root_append_clause(CNF_Root *root, CNF_Clause *clause) {
@@ -70,9 +75,10 @@ void CNF_Root_append_clause(CNF_Root *root, CNF_Clause *clause) {
 bool CNF_Root_eval_with_binds(const CNF_Root *root, const CNF_Binds *binds) {
     for (size_t i = 0; i < root->count; ++i) {
         const CNF_Clause clause = root->items[i];
+        if (clause.is_deleted) { continue; }
         bool clause_true = false;
-        for (size_t j = 0; j < clause.count; ++j) {
-            const CNF_Lit lit = clause.items[j];
+        for (size_t j = 0; j < clause.lits.count; ++j) {
+            const CNF_Lit lit = clause.lits.items[j];
             const CNF_Var var = imaxabs(lit);
             const bool valid_bound =
                 CNF_Binds_contains_var(binds, var)
@@ -137,13 +143,14 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
         return NULL;
     }
 
+    // TODO: Is variable really a literal here? How is negative handled?
     // Check if AST is a variable or single disjunction.
     if (!AST_is_and(ast)) {
         CNF_Var cnf_var;
         const bool cnf_var_found = CNF_Var_from_AST(ast, ast_vars, &cnf_var);
         assert(cnf_var_found);
         CNF_Clause clause = {0};
-        DA_APPEND(clause, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
+        DA_APPEND(clause.lits, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
         DA_APPEND(*root, clause);
         return root;
     }
@@ -162,7 +169,7 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
                 walk_ast, ast_vars, &cnf_var);
             assert(cnf_var_found);
             CNF_Clause clause = {0};
-            DA_APPEND(clause, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
+            DA_APPEND(clause.lits, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
             DA_APPEND(*root, clause);
         }
 
@@ -176,7 +183,7 @@ CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
                 const bool cnf_var_found = CNF_Var_from_AST(
                     walk_var->ast, ast_vars, &cnf_var);
                 assert(cnf_var_found);
-                DA_APPEND(clause, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
+                DA_APPEND(clause.lits, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
             }
             DA_APPEND(*root, clause);
         }
@@ -228,24 +235,23 @@ CNF_Binds CNF_Binds_copy(const CNF_Binds *binds) {
     return copy;
 }
 
+void CNF_Binds_free(CNF_Binds *binds) {
+    assert(binds != NULL);
+    free(binds->items);
+}
+
 // NOTE: Assumes all variables are bound, such as when binds object created by
 //       calling `CNF_Binds_make_zeros`.
 // Increment bindings in big-endian order. e.g. ABC: 010 -> 011 -> 100
-bool CNF_Binds_inc(CNF_Binds *binds) {
+bool CNF_Binds_increment(CNF_Binds *binds) {
     bool carry = true;
     for (size_t i = binds->count - 1; i > 0; --i) {
-        if (binds->items[i].pure == true) { continue; }
         const bool next_val = (binds->items[i].val != carry);
         carry = (binds->items[i].val && carry);
         binds->items[i].val = next_val;
         if (!carry) { break; }
     }
     return !carry;  // carry == true => overflow
-}
-
-void CNF_Binds_free(CNF_Binds *binds) {
-    assert(binds != NULL);
-    free(binds->items);
 }
 
 bool CNF_Binds_contains_var(const CNF_Binds *binds, CNF_Var var) {
