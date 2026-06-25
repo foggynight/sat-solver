@@ -114,6 +114,7 @@ bool AST_is_op(const AST *ast);
 bool AST_is_not(const AST *ast);
 bool AST_is_and(const AST *ast);
 bool AST_is_or(const AST *ast);
+bool AST_is_lit(const AST *ast);
 bool AST_is_CNF(const AST *ast);
 
 bool AST_has_single_child(const AST *ast);

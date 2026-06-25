@@ -12,7 +12,8 @@
 #include <assert.h>
 #include <stddef.h>
 
-// TODO: Should this be wrapped in do/while?
+#define UNUSED(x) (void)(x)
+
 #define UNREACHABLE()                           \
     assert(0 && "unreachable");                 \
     __builtin_unreachable();

@@ -103,11 +103,8 @@ bool CNF_Root_eval_with_binds(const CNF_Root *root, const CNF_Binds *binds) {
     return true;
 }
 
-static CNF_Var CNF_Var_from_AST(
-    const AST *ast,
-    const DA_Var *ast_vars,
-    CNF_Var *out_cnf_var)
-{
+// Convert an AST of form literal into a CNF_Lit, returns 0 on error.
+static CNF_Lit CNF_Lit_from_AST(const AST *ast, const DA_Var *ast_vars) {
     bool negated;
     Var ast_var;
     if (ast->kind == AST_VAR) {
@@ -119,82 +116,82 @@ static CNF_Var CNF_Var_from_AST(
     }
     size_t ast_var_i;
     const bool ast_var_found = vars_find(ast_vars, ast_var, &ast_var_i);
-    if (!ast_var_found) { return false; }
+    if (!ast_var_found) { return 0; }
 
     if (ast_var_i > INT64_MAX - 1) {
         error_msg("CNF_from_AST: variable index too large: %" PRId64,
                   ast_var_i);
-        exit(1); // TODO: Handle this error better.
+        return 0;
     }
     CNF_Var var = (CNF_Var)(ast_var_i + 1);
-    *out_cnf_var = negated ? -var : var;
+    return negated ? -var : var;
+}
+
+// Convert an AST of form: [literal, disj of literals] into a CNF_Clause.
+static bool CNF_Clause_from_AST(
+    const AST *ast, const DA_Var *ast_vars, CNF_Clause *out_clause)
+{
+    if (AST_is_lit(ast)) {
+        const CNF_Lit cnf_lit = CNF_Lit_from_AST(ast, ast_vars);
+        if (cnf_lit == 0) {
+            error_msg("CNF_Root_from_AST: failed to extract CNF_Lit from AST");
+            return false;
+        }
+        DA_APPEND(out_clause->lits, cnf_lit);
+    }
+
+    else if (AST_is_or(ast)) {
+        for (AST_list *walk = ast->children; walk != NULL; walk = walk->next) {
+            const CNF_Lit cnf_lit = CNF_Lit_from_AST(walk->ast, ast_vars);
+            if (cnf_lit == 0) {
+                error_msg("CNF_Root_from_AST: failed to extract CNF_Lit from AST");
+                return false;
+            }
+            DA_APPEND(out_clause->lits, cnf_lit);
+        }
+    }
+
+    else { UNREACHABLE(); }
+
     return true;
 }
 
+// Convert an AST in CNF (form) into a CNF_Root.
 CNF_Root *CNF_Root_from_AST(const AST *ast, const DA_Var *ast_vars) {
     if (!AST_is_CNF(ast)) {
-        error_msg("CNF_from_AST: input AST is not CNF");
+        error_msg("CNF_Root_from_AST: input AST is not CNF");
         return NULL;
     }
 
     CNF_Root *root = CNF_Root_alloc();
     if (!root) {
-        error_msg("CNF_from_AST: failed to allocate CNF_Root");
+        error_msg("CNF_Root_from_AST: failed to allocate CNF_Root");
         return NULL;
     }
 
-    // TODO: Is variable really a literal here? How is negative handled?
-    // Check if AST is a variable or single disjunction.
-    if (!AST_is_and(ast)) {
-        CNF_Var cnf_var;
-        const bool cnf_var_found = CNF_Var_from_AST(ast, ast_vars, &cnf_var);
-        assert(cnf_var_found);
+    if (AST_is_lit(ast) || AST_is_or(ast)) {
         CNF_Clause clause = {0};
-        DA_APPEND(clause.lits, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
+        const bool success = CNF_Clause_from_AST(ast, ast_vars, &clause);
+        if (!success) { goto fail; }
         DA_APPEND(*root, clause);
-        return root;
     }
 
-    // AST is a conjunction of disjunctions, CNF.
-    for (AST_list *walk_clause = ast->children;
-         walk_clause != NULL;
-         walk_clause = walk_clause->next)
-    {
-        const AST *walk_ast = walk_clause->ast;
-        CNF_Clause clause = {0};
-
-        if (!AST_is_or(walk_ast)) {
-            CNF_Var cnf_var;
-            const bool cnf_var_found = CNF_Var_from_AST(
-                walk_ast, ast_vars, &cnf_var);
-            assert(cnf_var_found);
+    else if (AST_is_and(ast)) {
+        for (AST_list *walk = ast->children; walk != NULL; walk = walk->next) {
             CNF_Clause clause = {0};
-            DA_APPEND(clause.lits, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
-            DA_APPEND(*root, clause);
-        }
-
-        // NOTE: walk_var can be either: variable, negated variable.
-        else {
-            for (AST_list *walk_var = walk_ast->children;
-                 walk_var != NULL;
-                 walk_var = walk_var->next)
-            {
-                CNF_Var cnf_var;
-                const bool cnf_var_found = CNF_Var_from_AST(
-                    walk_var->ast, ast_vars, &cnf_var);
-                assert(cnf_var_found);
-                DA_APPEND(clause.lits, (CNF_Lit)cnf_var); // TODO: Remove (need for) conversion.
-            }
+            const bool success = CNF_Clause_from_AST(walk->ast, ast_vars, &clause);
+            if (!success) { goto fail; }
             DA_APPEND(*root, clause);
         }
     }
+
+    else { UNREACHABLE(); }
 
     return root;
 
-// TODO: Handle error from CNF_Var_from_AST.
-//fail:
-//    CNF_Root_free(root);
-//    return NULL;
+fail:
+    CNF_Root_free(root);
+    return NULL;
 }
 
 void CNF_Root_print(const CNF_Root *root) {

@@ -216,14 +216,16 @@ bool AST_has_single_child(const AST *ast) {
 
 static bool AST_is_negvar(const AST *ast) {
     return AST_is_not(ast)
-        && AST_is_var(ast->children->ast)
-        && AST_has_single_child(ast);
+        && AST_has_single_child(ast)
+        && AST_is_var(ast->children->ast);
+}
+
+bool AST_is_lit(const AST *ast) {
+    return (ast->kind == AST_VAR) || AST_is_negvar(ast);
 }
 
 static bool AST_is_disj_vars_or_negs(const AST *ast) {
-    if (AST_is_var(ast)) { return true; }
-    else if (!AST_is_or(ast)) { return false; }
-
+    if (!AST_is_or(ast)) { return false; }
     for (AST_list *walk = ast->children; walk != NULL; walk = walk->next) {
         if (!AST_is_var(walk->ast) && !AST_is_negvar(walk->ast)) {
             return false;
@@ -232,14 +234,21 @@ static bool AST_is_disj_vars_or_negs(const AST *ast) {
     return true;
 }
 
-// TODO: There's some cases which this detects as not CNF but might count.
-// e.g. (A B)(A + B)(B + C), (A + B) + (B + C)
+// Check if AST is of form: A, -A, A + B, AB(A + B)
 bool AST_is_CNF(const AST *ast) {
     if (AST_is_var(ast) || AST_is_negvar(ast)) { return true; }
+    else if (AST_is_or(ast)) {
+        for (AST_list *walk = ast->children; walk != NULL; walk = walk->next) {
+            if (!AST_is_lit(walk->ast)) {
+                return false;
+            }
+        }
+        return true;
+    }
     else if (!AST_is_and(ast)) { return false; }
 
     for (AST_list *walk = ast->children; walk != NULL; walk = walk->next) {
-        if (!AST_is_negvar(walk->ast) && !AST_is_disj_vars_or_negs(walk->ast)) {
+        if (!AST_is_lit(walk->ast) && !AST_is_disj_vars_or_negs(walk->ast)) {
             return false;
         }
     }

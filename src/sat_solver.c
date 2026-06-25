@@ -221,7 +221,7 @@ static bool DPLL(DPLL_State *state, size_t depth) {
     va = (DPLL_VarAssign){ -((CNF_Lit)var), depth };
     DA_PUSH(state->history_va, va);
     if (DPLL(state, depth + 1)) { result = true; }
-    DA_POP(state->history_va);
+    UNUSED(DA_POP(state->history_va));
 
     if (result && state->first_solution) { return true; }
 
@@ -229,7 +229,7 @@ static bool DPLL(DPLL_State *state, size_t depth) {
     va = (DPLL_VarAssign){ +((CNF_Lit)var), depth };
     DA_PUSH(state->history_va, va);
     if (DPLL(state, depth + 1)) { result = true; }
-    DA_POP(state->history_va);
+    UNUSED(DA_POP(state->history_va));
 
     return result;
 }
