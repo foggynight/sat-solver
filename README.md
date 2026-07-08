@@ -1,3 +1,3 @@
-# sat-solver
+# sat-c
 
 SAT (Boolean Satisfiability) solver.
